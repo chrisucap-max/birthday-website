@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wishes Wall</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<header>
+  <h1>💌 Wishes Wall</h1>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="memories.html">Memories</a>
+  </nav>
+</header>
+
+<section class="section">
+  <form id="wishForm">
+    <input type="text" id="name" placeholder="Your Name" required>
+    <textarea id="message" placeholder="Your Message" required></textarea>
+    <button type="submit">Post Wish 🎉</button>
+  </form>
+  <div id="wishesContainer"></div>
+</section>
+
+<footer>Made with ❤️ for Riya</footer>
+
+<script>
+  const form = document.getElementById("wishForm");
+  const wishesContainer = document.getElementById("wishesContainer");
+  const saved = JSON.parse(localStorage.getItem("wishes")||"[]");
+
+  function render(){wishesContainer.innerHTML="";
+    saved.forEach(w=>{const d=document.createElement("div");
+      d.className="wish"; d.innerHTML=`<strong>${w.name}</strong>: ${w.message}`;
+      wishesContainer.appendChild(d);});}
+  render();
+
+  form.addEventListener("submit",e=>{
+    e.preventDefault();
+    const name=document.getElementById("name").value.trim();
+    const message=document.getElementById("message").value.trim();
+    if(name && message){
+      saved.push({name,message});
+      localStorage.setItem("wishes",JSON.stringify(saved));
+      render(); form.reset();
+    }
+  });
+</script>
+</body></html>
