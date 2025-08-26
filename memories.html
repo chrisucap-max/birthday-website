@@ -1,9 +1,21 @@
-<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Memories</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css">
-</head><body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memories</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .uploader{max-width:640px;margin:16px auto;background:#fff;padding:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .dropzone{border:2px dashed #ff4081;border-radius:12px;padding:22px;cursor:pointer}
+    .dropzone.drag{background:#fff5f8}
+    .uploader small{display:block;color:#666;margin-top:8px}
+    .actions{margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .thumb{position:relative}
+    .thumb button{position:absolute;top:6px;right:6px;background:#00000088;border:none;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer}
+  </style>
+</head>
+<body>
 <header>
   <h1>🌟 Memories Gallery</h1>
   <nav>
@@ -14,21 +26,112 @@
 </header>
 
 <section class="section">
-  <div class="gallery">
-    <img src="2.jpeg" alt="Memory 1">
-    <img src="3.jpeg" alt="Memory 2">
-    <img src="4.jpeg" alt="Memory 3">
-    <img src="5.jpeg" alt="Memory 4">
+  <div class="uploader">
+    <div id="dropzone" class="dropzone">
+      <p><strong>Drag & drop</strong> photos here or click to choose</p>
+      <input id="fileInput" type="file" accept="image/*" multiple style="display:none">
+    </div>
+    <small>Tip: Images are stored in your browser (localStorage). Max ~20MB total recommended.</small>
+    <div class="actions">
+      <button id="pickBtn">📷 Choose Photos</button>
+      <button id="clearBtn">🗑 Clear All Uploads</button>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery">
+    <!-- Your preset images can stay too -->
+    <div class="thumb"><img src="2.jpeg" alt="Memory 1"></div>
+    <div class="thumb"><img src="3.jpeg" alt="Memory 2"></div>
+    <div class="thumb"><img src="4.jpeg" alt="Memory 3"></div>
+    <div class="thumb"><img src="5.jpeg" alt="Memory 4"></div>
   </div>
 
   <h2>🎵 Tum Se Hi</h2>
-  <!-- Small “audio-like” YouTube embed -->
   <iframe width="300" height="80"
     src="https://www.youtube.com/embed/Cb6wuzOurPc?autoplay=0&loop=1&playlist=Cb6wuzOurPc"
-    title="Tum Se Hi" frameborder="0"
-    allow="autoplay; encrypted-media" allowfullscreen>
+    title="Tum Se Hi" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
   </iframe>
 </section>
 
 <footer>Made with ❤️ for Riya</footer>
-</body></html>
+
+<script>
+  const DZ = document.getElementById('dropzone');
+  const FI = document.getElementById('fileInput');
+  const pickBtn = document.getElementById('pickBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const gallery = document.getElementById('gallery');
+  const KEY = 'memPhotos';
+  let photos = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+  function renderUploads(){
+    // remove existing uploaded thumbs
+    [...gallery.querySelectorAll('.thumb[data-uploaded="1"]')].forEach(n=>n.remove());
+    // add from storage
+    photos.forEach((src, idx)=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'thumb';
+      wrap.dataset.uploaded = '1';
+      const img = document.createElement('img');
+      img.src = src; img.alt = `Upload ${idx+1}`;
+      const del = document.createElement('button');
+      del.textContent = '✖';
+      del.title = 'Remove';
+      del.onclick = ()=>{ photos.splice(idx,1); save(); renderUploads(); };
+      wrap.appendChild(img); wrap.appendChild(del);
+      gallery.appendChild(wrap);
+    });
+  }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(photos)); }
+
+  async function handleFiles(files){
+    for(const file of files){
+      if(!file.type.startsWith('image/')) continue;
+      const dataUrl = await resizeToDataURL(file, 1600, 1600, 0.85);
+      photos.push(dataUrl);
+    }
+    save(); renderUploads();
+  }
+
+  function resizeToDataURL(file, maxW, maxH, quality){
+    return new Promise(res=>{
+      const fr = new FileReader();
+      fr.onload = e=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let {width:w, height:h} = img;
+          const ratio = Math.min(maxW/w, maxH/h, 1);
+          const cw = Math.round(w*ratio), ch = Math.round(h*ratio);
+          const cv = document.createElement('canvas');
+          cv.width = cw; cv.height = ch;
+          const cx = cv.getContext('2d');
+          cx.drawImage(img, 0, 0, cw, ch);
+          res(cv.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  // Events
+  pickBtn.onclick = ()=> FI.click();
+  FI.onchange = e=> handleFiles(e.target.files);
+
+  ;['dragenter','dragover'].forEach(ev=>DZ.addEventListener(ev, e=>{
+    e.preventDefault(); e.stopPropagation(); DZ.classList.add('drag');
+  }));
+  ;['dragleave','drop'].forEach(ev=>DZ.addEventListener(ev, e=>{
+    e.preventDefault(); e.stopPropagation(); DZ.classList.remove('drag');
+  }));
+  DZ.addEventListener('drop', e=> handleFiles(e.dataTransfer.files));
+  DZ.addEventListener('click', ()=> FI.click());
+
+  clearBtn.onclick = ()=>{
+    if(confirm('Clear all uploaded photos?')){ photos = []; save(); renderUploads(); }
+  };
+
+  renderUploads();
+</script>
+</body>
+</html>
