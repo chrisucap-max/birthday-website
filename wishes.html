@@ -11,10 +11,10 @@
   <script>
     const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
-
-    // ✅ Correct way: use window.supabase to avoid shadowing
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
+  <!-- 🎆 Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <header>
@@ -44,7 +44,6 @@
     const form = document.getElementById("wishForm");
     const wishesContainer = document.getElementById("wishesContainer");
 
-    // ✅ Fetch and render wishes
     async function renderWishes() {
       const { data, error } = await client
         .from("wishes")
@@ -53,7 +52,6 @@
 
       if (error) {
         console.error("Error fetching wishes:", error.message);
-        wishesContainer.innerHTML = "<p>Could not load wishes 😢</p>";
         return;
       }
 
@@ -66,12 +64,10 @@
       });
     }
 
-    // ✅ Submit new wish
-    form.addEventListener("submit", async e => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const name = document.getElementById("name").value.trim();
       const message = document.getElementById("message").value.trim();
-
       if (!name || !message) return;
 
       const { error } = await client.from("wishes").insert([{ name, message }]);
@@ -82,11 +78,15 @@
         return;
       }
 
+      // 🎆 Confetti blast when wish is posted
+      confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+      setTimeout(()=> confetti({ particleCount: 80, spread: 100, origin: { y: 0.7, x: 0.2 }}), 180);
+      setTimeout(()=> confetti({ particleCount: 80, spread: 100, origin: { y: 0.7, x: 0.8 }}), 280);
+
       form.reset();
-      renderWishes(); // refresh list
+      renderWishes();
     });
 
-    // ✅ Load on page start
     renderWishes();
   </script>
 </body>
