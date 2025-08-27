@@ -4,8 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About Riya</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
   <link rel="stylesheet" href="style.css">
+  <style>
+    .about-photo {
+      margin: 20px auto;
+      max-width: 250px;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .about-text {
+      margin-top: 20px;
+    }
+    .audio-player {
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
 <header>
@@ -19,12 +32,26 @@
 </header>
 
 <section class="section">
-  <p>Riya is one of the most amazing people you'll ever meet! 🌸</p>
-  <ul style="list-style:none;padding:0">
-    <li>Loves Chris Evans 💕</li>
-    <li>Kinder Joy lover 🍫</li>
-    <li>Joyful and caring soul 🌟</li>
-  </ul>
+  <!-- Photo of Riya -->
+  <img src="riya.jpg" alt="Riya's Photo" class="about-photo">
+
+  <div class="about-text">
+    <p>Riya is one of the most amazing people you'll ever meet! 🌸</p>
+    <ul>
+      <li>Loves Chris Evans 💕</li>
+      <li>Kinder Joy lover 🍫</li>
+      <li>Joyful and caring soul 🌟</li>
+    </ul>
+  </div>
+
+  <!-- Song -->
+  <div class="audio-player">
+    <h3>🎵 A Special Song for Riya</h3>
+    <audio controls autoplay loop>
+      <source src="song.mp3" type="audio/mpeg">
+      Your browser does not support the audio element.
+    </audio>
+  </div>
 </section>
 
 <footer>Made with ❤️ for Riya</footer>
