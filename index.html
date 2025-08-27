@@ -1,11 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home - Riya's Birthday</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎂 Riya’s Birthday</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
+    /* --- Hero Fancy Title --- */
+    .hero {
+      padding: 24px 14px 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    .title {
+      font-size: clamp(34px, 8vw, 84px);
+      line-height: 1.02;
+      margin: 8px auto 6px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(92deg,#ff7eb3,#ff4081,#ffb86c,#ffd166);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+      position: relative;
+      text-shadow: 0 6px 22px rgba(255,64,129,.15);
+      animation: hue 12s linear infinite;
+    }
+    .subtitle {
+      font-size: clamp(16px, 3.5vw, 22px);
+      margin: 0 0 14px;
+      color: #444;
+    }
+    .shine {
+      position: relative;
+      display: inline-block;
+    }
+    .shine:after{
+      content:"";
+      position:absolute;
+      top:0;left:-150%;
+      width:150%;height:100%;
+      background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,.6) 50%, transparent 100%);
+      transform: skewX(-20deg);
+      animation: sweep 3.5s ease-in-out infinite;
+    }
+
+    @keyframes hue{
+      0%{ filter:hue-rotate(0deg); }
+      100%{ filter:hue-rotate(360deg); }
+    }
+    @keyframes sweep{
+      0%{ left:-150%; }
+      100%{ left:150%; }
+    }
+
+    /* --- Balloons --- */
     @keyframes floatUp {
       from { transform: translateY(40px); opacity: 1; }
       to   { transform: translateY(-110vh); opacity: 0; }
@@ -17,41 +67,103 @@
       z-index: 0;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
     }
+
+    /* --- Countdown Cards --- */
+    .timer-wrap{
+      display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin: 16px auto 6px;
+      padding: 0 10px;
+    }
+    .timer-card{
+      min-width: 250px;
+      padding: 14px 18px;
+      background:#fff;
+      border-radius:14px;
+      box-shadow:0 6px 20px rgba(0,0,0,.12);
+      text-align:center;
+    }
+    .timer-card h3{ margin:6px 0 6px; }
+    .count-val{
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+
+    /* --- Buttons Row --- */
+    .cta{
+      display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin: 12px 0 4px;
+    }
+    .btn{
+      background:#ff4081; color:#fff; border:none; padding:12px 16px; border-radius:10px;
+      font-weight:700; cursor:pointer; text-decoration:none; display:inline-block;
+      box-shadow:0 6px 16px rgba(255,64,129,.25);
+      transition: transform .08s ease, background .15s ease;
+    }
+    .btn:hover{ background:#e2336d; transform: translateY(-1px); }
+    .btn.secondary{ background:#6c63ff; box-shadow:0 6px 16px rgba(108,99,255,.25); }
+    .btn.secondary:hover{ background:#574ef4; }
+
+    /* --- Music --- */
+    .music-player{ margin: 12px 0 0; }
+    .music-player button{
+      background:#333; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;
+    }
+
+    /* --- Fun Fact --- */
+    .fact{
+      margin:16px auto 6px; max-width:780px; padding:10px 14px; border-radius:12px;
+      background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.08);
+      font-style: italic;
+    }
+
+    @media (max-width:600px){
+      .timer-card{ min-width: 90%; }
+      .count-val{ font-size: 20px; }
+    }
   </style>
 </head>
 <body>
-<header>
-  <h1>🎉 Happy Birthday Riya! 🎂</h1>
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="about.html">About</a>
-    <a href="wishes.html">Wishes</a>
-    <a href="memories.html">Memories</a>
-  </nav>
-</header>
+  <header class="hero">
+    <h1 class="title"><span class="shine">🎉 Happy Birthday, Riya! 🎉</span></h1>
+    <p class="subtitle">Here’s to laughter, love, and infinite Kinder Joys 🍫💕</p>
+  </header>
 
-<section class="section">
-  <p>Welcome to Riya’s Birthday Website 🎉</p>
-  <p>See wishes, memories, and celebrations 💕</p>
-</section>
+  <section class="section" aria-label="Countdown timers">
+    <h2>⏳ Countdown to Sept 2</h2>
+    <div class="timer-wrap">
+      <div class="timer-card">
+        <h3>🇮🇳 IST (UTC+5:30)</h3>
+        <div id="countIST" class="count-val">--</div>
+        <small>to 12:00 AM IST</small>
+      </div>
+      <div class="timer-card">
+        <h3>🗽 New York (ET, UTC−4)</h3>
+        <div id="countET" class="count-val">--</div>
+        <small>to 12:00 AM ET</small>
+      </div>
+    </div>
 
-<footer>Made with ❤️ for Riya</footer>
+    <div class="cta">
+      <a class="btn" href="wishes.html">💌 Post a Wish</a>
+      <a class="btn secondary" href="memories.html">📸 See Memories</a>
+    </div>
 
-<!-- 🎈 Floating Balloons Script -->
-<script>
-  function spawnBalloon(){
-    const b = document.createElement('div');
-    b.className = 'balloon';
-    b.textContent = Math.random() < .5 ? '🎈' : '🎉';
-    const size = 24 + Math.random()*28;
-    b.style.left = (5 + Math.random()*90) + 'vw';
-    b.style.fontSize = size + 'px';
-    b.style.animation = `floatUp ${6 + Math.random()*6}s linear forwards`;
-    document.body.appendChild(b);
-    setTimeout(()=> b.remove(), 12000);
-  }
-  setInterval(spawnBalloon, 1200);
-  for(let i=0;i<6;i++) setTimeout(spawnBalloon, i*250);
-</script>
-</body>
-</html>
+    <div class="music-player">
+      <button id="musicBtn">🎵 Play Song</button>
+      <audio id="bgMusic" loop>
+        <source src="song.mp3" type="audio/mpeg">
+      </audio>
+    </div>
+
+    <div id="funFact" class="fact"></div>
+  </section>
+
+  <footer>Made with ❤️ for Riya</footer>
+
+  <!-- 🎈 Balloons -->
+  <script>
+    function spawnBalloon(){
+      const b = document.createElement('div');
+      b.className = 'balloon';
+      b.textContent = Math.random() < .5 ? '🎈' : '🎉';
+      const size = 24 + Math.random()*28;
+      b.style.left = (5 + Math.random()*90) + '*
