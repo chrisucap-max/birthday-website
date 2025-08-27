@@ -21,18 +21,20 @@
       text-align: center;
       overflow: hidden;
     }
-    .title {
-      font-size: clamp(36px, 8vw, 84px);
-      line-height: 1.02;
-      margin: 8px auto 6px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      background: linear-gradient(92deg,#ff7eb3,#ff4081,#ffb86c,#ffd166);
-      -webkit-background-clip: text; background-clip: text;
-      color: transparent;
-      text-shadow: 0 6px 22px rgba(255,64,129,.15);
-      animation: hue 12s linear infinite;
-    }
+   .title {
+  font-size: clamp(36px, 8vw, 84px);
+  line-height: 1.02;
+  margin: 8px auto 6px;
+  font-weight: 900;                  /* heavy bold */
+  letter-spacing: 1px;
+  color: #ff4081;                    /* solid fallback color */
+  background: linear-gradient(92deg,#ff7eb3,#ff4081,#ffb86c,#ffd166);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: #ff4081;   /* ensures fallback bold pink */
+  text-shadow: 2px 2px 6px rgba(0,0,0,.15);  /* adds contrast */
+  animation: hue 12s linear infinite;
+}
     .subtitle {
       font-size: clamp(16px, 3.5vw, 22px);
       margin: 0 0 14px;
@@ -255,3 +257,4 @@
   </script>
 </body>
 </html>
+
