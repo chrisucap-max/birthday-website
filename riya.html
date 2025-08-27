@@ -1,1 +1,135 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔒 Riya Answers</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .wrap{ max-width:760px; margin:18px auto; background:#fff; border-radius:14px; padding:16px; box-shadow:0 6px 16px rgba(0,0,0,.08); }
+    .q{ margin:10px 0; text-align:left; }
+    .q h3{ margin:0 0 8px; font-size:18px; }
+    .opt{ margin:4px 0; }
+    .gate{ max-width:480px; margin: 14px auto; background:#fff; padding:14px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔒 Riya Answers</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="quiz.html">Quiz</a>
+    </nav>
+  </header>
+
+  <section class="gate" id="gate">
+    <p>Riya, enter your secret code:</p>
+    <input id="code" placeholder="Secret code" style="padding:10px 12px; border:2px solid #ddd; border-radius:8px; width:100%;">
+    <div style="margin-top:10px;">
+      <button id="enterBtn" class="btn">Enter</button>
+    </div>
+  </section>
+
+  <section class="wrap" id="riyaBox" style="display:none;">
+    <h2>Mark your answers</h2>
+    <div id="qs"></div>
+    <div style="margin-top:12px;">
+      <button id="saveBtn" class="btn">💾 Save All</button>
+    </div>
+    <p id="status" style="margin-top:8px;"></p>
+  </section>
+
+  <footer>Made with ❤️ for Riya</footer>
+
+  <script>
+    const SECRET_CODE = "RIYA-2025"; // <-- change this & share only with Riya
+
+    // Supabase
+    const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const quizData = [
+      { q: "💖 Who is Riya’s celebrity crush?", opts: ["Chris Hemsworth","Chris Evans","Shah Rukh Khan","Harry Styles"] },
+      { q: "🍫 What sweet does Riya absolutely love?", opts: ["Ferrero Rocher","Kinder Joy","Laddu","Brownies"] },
+      { q: "🌸 How would you best describe Riya?", opts: ["Joyful","Serious","Sleepy","Grumpy"] },
+      { q: "🎂 When is Riya’s birthday?", opts: ["Aug 15","Sep 2","Oct 10","Jan 1"] },
+      { q: "🎬 What kind of movies does Riya vibe with most?", opts: ["Action","Rom-com","Horror","Documentary"] }
+    ];
+
+    const gate = document.getElementById("gate");
+    const riyaBox = document.getElementById("riyaBox");
+    const qsEl = document.getElementById("qs");
+    const statusEl = document.getElementById("status");
+
+    document.getElementById("enterBtn").onclick = () => {
+      const c = (document.getElementById("code").value || "").trim();
+      if(c === SECRET_CODE){
+        gate.style.display = "none";
+        riyaBox.style.display = "block";
+        renderQs();
+        preload();
+      } else alert("Wrong code.");
+    };
+
+    function renderQs(){
+      qsEl.innerHTML = "";
+      quizData.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "q";
+        div.innerHTML = `<h3>Q${i+1}. ${item.q}</h3>`;
+        item.opts.forEach((o, idx) => {
+          const id = `q_${i}_${idx}`;
+          const row = document.createElement("div");
+          row.className = "opt";
+          row.innerHTML = `
+            <label for="${id}">
+              <input type="radio" name="riya_${i}" id="${id}" value="${idx}"> ${o}
+            </label>`;
+          div.appendChild(row);
+        });
+        qsEl.appendChild(div);
+      });
+    }
+
+    async function preload(){
+      // Load existing choices (if any)
+      const { data, error } = await supa.from("riya_answers").select("q_index,choice_index");
+      if(error){ console.error(error); return; }
+      data.forEach(r => {
+        const el = document.querySelector(`input[name="riya_${r.q_index}"][value="${r.choice_index}"]`);
+        if(el) el.checked = true;
+      });
+    }
+
+    document.getElementById("saveBtn").onclick = async () => {
+      statusEl.textContent = "Saving...";
+      // gather choices
+      const rows = [];
+      quizData.forEach((_, i) => {
+        const sel = document.querySelector(`input[name="riya_${i}"]:checked`);
+        if(sel) rows.push({ q_index: i, choice_index: parseInt(sel.value) });
+      });
+      if(rows.length === 0){ alert("Please select at least one answer."); statusEl.textContent=""; return; }
+
+      // we upsert by deleting then inserting current snapshot (simplest client-side)
+      // delete existing for provided indices to avoid conflicts
+      const idxs = rows.map(r=>r.q_index);
+      // (Optional) could delete one by one; Supabase JS doesn't support IN delete with eqAny; we'll just insert and ignore duplicates
+      // Try inserts; duplicates will error—so do individual upserts:
+      for(const r of rows){
+        // Try update first
+        let { error: uerr } = await supa.from("riya_answers").update({ choice_index: r.choice_index }).eq("q_index", r.q_index);
+        if(uerr || (uerr && uerr.details && uerr.details.includes("0 rows"))){
+          // If no row existed, insert
+          const { error: ierr } = await supa.from("riya_answers").insert([r]);
+          if(ierr && !ierr.message.includes("duplicate")) { console.error(ierr); statusEl.textContent="Some rows failed to save."; return; }
+        }
+      }
+      statusEl.textContent = "Saved! 🎉";
+    };
+  </script>
+</body>
+</html>
