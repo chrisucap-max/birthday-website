@@ -6,21 +6,12 @@
   <title>Wishes Wall</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
   <link rel="stylesheet" href="style.css">
-  <style>
-    .deleteBtn {
-      margin-left: 10px;
-      background: #ff4d4d;
-      color: white;
-      border: none;
-      padding: 3px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .deleteBtn:hover {
-      background: #d93636;
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
 </head>
 <body>
   <header>
@@ -28,6 +19,7 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="about.html">About</a>
+      <a href="wishes.html">Wishes</a>
       <a href="memories.html">Memories</a>
     </nav>
   </header>
@@ -48,46 +40,37 @@
   <script>
     const form = document.getElementById("wishForm");
     const wishesContainer = document.getElementById("wishesContainer");
-    let saved = JSON.parse(localStorage.getItem("wishes") || "[]");
 
-    // Function to display wishes
-    function render() {
+    async function render() {
+      const { data, error } = await supabase
+        .from("wishes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) { console.error(error); return; }
+
       wishesContainer.innerHTML = "";
-      saved.forEach((wish, index) => {
+      data.forEach(wish => {
         const div = document.createElement("div");
         div.className = "wish";
-        div.innerHTML = `
-          <strong>${wish.name}</strong>: ${wish.message}
-          <button class="deleteBtn" data-index="${index}">❌</button>
-        `;
+        div.innerHTML = `<strong>${wish.name}</strong>: ${wish.message}`;
         wishesContainer.appendChild(div);
-      });
-
-      // Attach delete button functionality
-      document.querySelectorAll(".deleteBtn").forEach(btn => {
-        btn.addEventListener("click", e => {
-          const i = e.target.dataset.index;
-          saved.splice(i, 1); // remove from array
-          localStorage.setItem("wishes", JSON.stringify(saved)); // update storage
-          render(); // re-render
-        });
       });
     }
 
-    render();
-
-    // Add new wish
-    form.addEventListener("submit", e => {
+    form.addEventListener("submit", async e => {
       e.preventDefault();
       const name = document.getElementById("name").value.trim();
       const message = document.getElementById("message").value.trim();
       if (name && message) {
-        saved.push({ name, message });
-        localStorage.setItem("wishes", JSON.stringify(saved));
-        render();
+        const { error } = await supabase.from("wishes").insert([{ name, message }]);
+        if (error) { alert("Error saving wish"); console.error(error); }
         form.reset();
+        render();
       }
     });
+
+    render();
   </script>
 </body>
 </html>
