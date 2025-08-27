@@ -15,6 +15,14 @@
     .thumb img {
       max-width: 200px;
       border-radius: 8px;
+      margin: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -51,7 +59,7 @@
   const FI = document.getElementById('fileInput');
   const pickBtn = document.getElementById('pickBtn');
 
-  // Add a photo to gallery
+  // Render a photo in the gallery
   function addPhotoToGallery(url) {
     const wrap = document.createElement("div");
     wrap.className = "thumb";
@@ -62,7 +70,7 @@
     gallery.appendChild(wrap);
   }
 
-  // Load all photos from bucket
+  // Load all photos from the bucket
   async function loadExistingPhotos() {
     const { data, error } = await client
       .storage
@@ -79,13 +87,14 @@
         .storage
         .from("photos")
         .getPublicUrl(item.name);
-      if (urlData?.publicUrl) {
+
+      if (urlData && urlData.publicUrl) {
         addPhotoToGallery(urlData.publicUrl);
       }
     }
   }
 
-  // Upload new files
+  // Upload new photos
   async function handleFiles(files) {
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
@@ -102,26 +111,28 @@
         continue;
       }
 
+      // Fetch the public URL for the uploaded photo
       const { data: urlData } = client
         .storage
         .from("photos")
         .getPublicUrl(fileName);
-      if (urlData?.publicUrl) {
-        addPhotoToGallery(urlData.publicUrl); // show instantly
+
+      if (urlData && urlData.publicUrl) {
+        addPhotoToGallery(urlData.publicUrl);
       }
     }
   }
 
-  // Events
+  // Event listeners
   pickBtn.onclick = () => FI.click();
   FI.onchange = e => handleFiles(e.target.files);
-  DZ.addEventListener('drop', e => { 
-    e.preventDefault(); 
-    handleFiles(e.dataTransfer.files); 
+  DZ.addEventListener('drop', e => {
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
   });
   DZ.addEventListener('click', () => FI.click());
 
-  // Load existing photos on page load
+  // Load photos when page opens
   loadExistingPhotos();
 </script>
 </body>
