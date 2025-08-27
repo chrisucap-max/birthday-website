@@ -8,12 +8,11 @@
 
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Day.js (only used to format timestamps nicely) -->
+  <!-- Day.js just for pretty timestamps -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
 
   <style>
-    /* Page-local styles to complement your style.css */
+    /* Page-local styles (works with your style.css) */
     .quiz-wrap{ max-width: 760px; margin: 18px auto; padding: 16px; }
     .quiz-hero{ margin: 0 auto 12px; padding: 14px 16px; background: #fff; border-radius: 14px; box-shadow: 0 6px 16px rgba(0,0,0,.08); }
     .quiz-hero h2{ margin: 8px 0 4px; font-size: clamp(22px, 5vw, 36px); }
@@ -22,7 +21,6 @@
     .quiz-option{ display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px; background:#ffe6f0; border:2px solid #ff4081; border-radius:10px; cursor:pointer; transition: background .15s, transform .05s; }
     .quiz-option:hover{ background:#ffd6e6; transform: translateY(-1px); }
     .quiz-option.correct{ background:#c2f7c2; border-color:#2ecc71; }
-    .quiz-option.wrong{ background:#f9c0c0; border-color:#e74c3c; }
     .quiz-cta{ display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .btn{ background:#ff4081; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; text-decoration:none; }
     .btn.secondary{ background:#6c63ff; }
@@ -55,7 +53,7 @@
   <section class="quiz-wrap">
     <div class="quiz-hero">
       <h2>🎮 How Well Do You Know Riya?</h2>
-      <p class="tiny">Answer the questions. Scores will show as soon as Riya has submitted all of her answers.</p>
+      <p class="tiny">Answer the questions. The leaderboard appears automatically once Riya has submitted all of her answers.</p>
     </div>
 
     <!-- Player register -->
@@ -107,12 +105,16 @@
   <footer>Made with ❤️ for Riya</footer>
 
   <script>
-    // ===== Supabase client =====
+    /* ===========================
+       Supabase client
+    ============================ */
     const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
     const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== Quiz content (MUST match riya.html question order) =====
+    /* ===========================
+       Quiz content (MUST match riya.html)
+    ============================ */
     const quizData = [
       { q: "💖 Who is Riya’s celebrity crush?", opts: ["Chris Hemsworth","Chris Evans","Shah Rukh Khan","Harry Styles"] },
       { q: "🍫 What sweet does Riya absolutely love?", opts: ["Ferrero Rocher","Kinder Joy","Laddu","Brownies"] },
@@ -122,10 +124,11 @@
     ];
     const QUESTION_COUNT = quizData.length;
 
-    // ===== State =====
+    /* ===========================
+       State & Elements
+    ============================ */
     let playerId = null, playerName = "", idx = 0, locked = false;
 
-    // ===== Elements =====
     const regBox = document.getElementById("regBox");
     const playBox = document.getElementById("playBox");
     const doneBox = document.getElementById("doneBox");
@@ -147,10 +150,9 @@
     showBoardBtn.onclick = () => { lbSection.style.display = 'block'; buildInlineLeaderboard(); };
     lbRefresh.onclick = () => buildInlineLeaderboard();
 
-    // ===== Helpers =====
-    function updateProgress(){ progressEl.textContent = `Question ${idx+1} / ${QUESTION_COUNT}`; }
-
-    // ===== Quiz flow =====
+    /* ===========================
+       Quiz flow
+    ============================ */
     async function startQuiz(){
       const input = document.getElementById("playerName");
       playerName = (input.value || "").trim();
@@ -165,6 +167,8 @@
       idx = 0;
       loadQ();
     }
+
+    function updateProgress(){ progressEl.textContent = `Question ${idx+1} / ${QUESTION_COUNT}`; }
 
     function loadQ(){
       locked = false;
@@ -207,58 +211,92 @@
         playBox.style.display = "none";
         doneBox.style.display = "block";
         resultEl.textContent = `Thanks, ${playerName}! Your answers are saved. 🎉`;
+        // Optionally auto-open leaderboard after finishing:
+        // lbSection.style.display = 'block'; buildInlineLeaderboard();
       }
     };
 
-    // ===== Embedded Leaderboard logic (NO date gate) =====
+    /* ===========================
+       Leaderboard (NO date gate)
+       - Visible as soon as Riya has answered all questions
+       - Auto-refresh every 20s once visible
+    ============================ */
+    let lbTimer = null;
+    function startAutoRefresh(){
+      if(lbTimer) return;
+      lbTimer = setInterval(buildInlineLeaderboard, 20000);
+    }
+    function stopAutoRefresh(){
+      if(lbTimer){ clearInterval(lbTimer); lbTimer = null; }
+    }
+
     async function buildInlineLeaderboard(){
-      lbMsg.textContent = "Checking…";
-      lbBoard.style.display = "none";
+      try{
+        lbMsg.textContent = "Checking…";
+        lbBoard.style.display = "none";
 
-      // 1) Fetch Riya's answers
-      const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index,choice_index');
-      if(rerr){ lbMsg.textContent = "Error: " + rerr.message; return; }
-      const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
-      const missing = [...Array(QUESTION_COUNT).keys()].filter(i => !riyaMap.has(i)).length;
+        // 1) Fetch Riya's answers
+        const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index,choice_index');
+        if(rerr){ console.error("riya_answers error:", rerr); lbMsg.textContent = "Error loading Riya's answers: " + rerr.message; stopAutoRefresh(); return; }
 
-      // 2) Only condition now: Riya must have finished all answers
-      if(missing > 0){
-        lbMsg.textContent = `⏳ Waiting for Riya to finish (${missing} question${missing>1?'s':''} left)…`;
-        return;
-      }
+        // Build required indices 0..QUESTION_COUNT-1 and test presence
+        const required = Array.from({length: QUESTION_COUNT}, (_,i)=>i);
+        const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
+        const missingIdx = required.filter(i => !riyaMap.has(i));
 
-      // 3) Load players + answers
-      const { data: players, error: perr } = await supa.from('players').select('id,name,created_at');
-      if(perr){ lbMsg.textContent = "Error: " + perr.message; return; }
-
-      const { data: pa, error: aerr } = await supa.from('player_answers').select('player_id,q_index,choice_index');
-      if(aerr){ lbMsg.textContent = "Error: " + aerr.message; return; }
-
-      // 4) Compute scores
-      const scoreMap = new Map(players.map(p => [p.id, 0]));
-      pa.forEach(a => {
-        const correct = riyaMap.get(a.q_index);
-        if(correct != null && a.choice_index === correct){
-          scoreMap.set(a.player_id, (scoreMap.get(a.player_id)||0) + 1);
+        if(missingIdx.length > 0){
+          lbMsg.textContent = `⏳ Waiting for Riya to finish (${missingIdx.length} left: ${missingIdx.join(', ')})…`;
+          stopAutoRefresh();
+          return;
         }
-      });
 
-      const rows = players.map(p => ({
-        name: p.name,
-        score: scoreMap.get(p.id)||0,
-        time: new Date(p.created_at).getTime(),
-      }))
-      .sort((a,b)=> b.score - a.score || a.time - b.time);
+        // 2) Load players
+        const { data: players, error: perr } = await supa.from('players').select('id,name,created_at');
+        if(perr){ console.error("players error:", perr); lbMsg.textContent = "Error loading players: " + perr.message; stopAutoRefresh(); return; }
 
-      // 5) Render
-      lbMsg.textContent = "✅ Scores are live.";
-      lbBoard.style.display = "block";
-      lbBody.innerHTML = "";
-      rows.forEach((r,i)=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td><b>${r.score}/${QUESTION_COUNT}</b></td><td>${dayjs(r.time).format('MMM D, HH:mm')}</td>`;
-        lbBody.appendChild(tr);
-      });
+        if(!players || players.length === 0){
+          lbMsg.textContent = "No participants yet.";
+          lbBoard.style.display = "none";
+          stopAutoRefresh();
+          return;
+        }
+
+        // 3) Load player answers
+        const { data: pa, error: aerr } = await supa.from('player_answers').select('player_id,q_index,choice_index,created_at');
+        if(aerr){ console.error("player_answers error:", aerr); lbMsg.textContent = "Error loading answers: " + aerr.message; stopAutoRefresh(); return; }
+
+        // 4) Compute scores
+        const scoreMap = new Map(players.map(p => [p.id, 0]));
+        pa.forEach(a => {
+          const correct = riyaMap.get(a.q_index);
+          if(correct != null && a.choice_index === correct){
+            scoreMap.set(a.player_id, (scoreMap.get(a.player_id)||0) + 1);
+          }
+        });
+
+        const rows = players.map(p => ({
+          name: p.name,
+          score: scoreMap.get(p.id) || 0,
+          time: new Date(p.created_at).getTime()
+        }))
+        .sort((a,b)=> b.score - a.score || a.time - b.time);
+
+        // 5) Render
+        lbBody.innerHTML = "";
+        rows.forEach((r,i)=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${i+1}</td><td>${r.name || '(no name)'}</td><td><b>${r.score}/${QUESTION_COUNT}</b></td><td>${(window.dayjs? dayjs(r.time).format('MMM D, HH:mm') : new Date(r.time).toLocaleString())}</td>`;
+          lbBody.appendChild(tr);
+        });
+
+        lbMsg.textContent = "✅ Scores are live.";
+        lbBoard.style.display = "block";
+        startAutoRefresh();
+      }catch(err){
+        console.error("Leaderboard build error:", err);
+        lbMsg.textContent = "Unexpected error building leaderboard. Check console.";
+        stopAutoRefresh();
+      }
     }
   </script>
 </body>
