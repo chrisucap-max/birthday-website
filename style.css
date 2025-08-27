@@ -53,58 +53,63 @@ footer {
   text-align: left;
 }
 
-/* Wishes Form */
-#wishForm input,
-#wishForm textarea {
-  width: 250px;
-  padding: 10px;
-  margin: 5px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  resize: none; /* prevent textarea resizing */
-  box-sizing: border-box;
+/* ===== Wishes form: perfectly uniform ===== */
+#wishForm{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
 }
 
-/* Align inline on desktop */
-#wishForm {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 15px;
+#wishForm input,
+#wishForm textarea{
+  width:300px;              /* same width */
+  height:44px;              /* same height on desktop */
+  padding:10px 12px;
+  border:2px solid #ddd;
+  border-radius:8px;
+  font-family:'Poppins', sans-serif;
+  font-size:14px;
+  line-height:22px;
+  box-sizing:border-box;
+  resize:none;              /* stop textarea from stretching */
+}
+
+/* Make textarea look like an input (single-line height) */
+#wishForm textarea{
+  overflow:auto;            /* allow scroll if text exceeds height */
 }
 
 /* Button */
-#wishForm button {
-  background: #ff4081;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
+#wishForm button{
+  height:44px;              /* match field height */
+  padding:0 16px;
+  border:none;
+  border-radius:8px;
+  background:#ff4081;
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .2s;
 }
+#wishForm button:hover{ background:#e2336d; }
 
-#wishForm button:hover {
-  background: #e2336d;
-}
-
-/* 📱 Mobile: stack vertically */
-@media (max-width: 600px) {
-  #wishForm {
-    flex-direction: column;
-    align-items: center;
-  }
+/* ===== Mobile: stack and give textarea more room ===== */
+@media (max-width: 640px){
+  #wishForm{ flex-direction:column; }
   #wishForm input,
   #wishForm textarea,
-  #wishForm button {
-    width: 90%;
-    max-width: 350px;
+  #wishForm button{
+    width:92%;
+    max-width:360px;
+  }
+  #wishForm textarea{
+    height:110px;           /* comfy multiline on phones */
   }
 }
+
 
 /* === Memories Gallery === */
 .uploader {
