@@ -21,20 +21,19 @@
       text-align: center;
       overflow: hidden;
     }
-   .title {
-  font-size: clamp(36px, 8vw, 84px);
-  line-height: 1.02;
-  margin: 8px auto 6px;
-  font-weight: 900;                  /* heavy bold */
-  letter-spacing: 1px;
-  color: #ff4081;                    /* solid fallback color */
-  background: linear-gradient(92deg,#ff7eb3,#ff4081,#ffb86c,#ffd166);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: #ff4081;   /* ensures fallback bold pink */
-  text-shadow: 2px 2px 6px rgba(0,0,0,.15);  /* adds contrast */
-  animation: hue 12s linear infinite;
-}
+    .title {
+      font-size: clamp(36px, 8vw, 84px);
+      line-height: 1.02;
+      margin: 8px auto 6px;
+      font-weight: 900; /* bold & visible */
+      letter-spacing: 1px;
+      color: #ff4081; /* solid fallback */
+      background: linear-gradient(92deg,#ff7eb3,#ff4081,#ffb86c,#ffd166);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: #ff4081; /* ensure visibility */
+      text-shadow: 2px 2px 6px rgba(0,0,0,.15);
+      animation: hue 12s linear infinite;
+    }
     .subtitle {
       font-size: clamp(16px, 3.5vw, 22px);
       margin: 0 0 14px;
@@ -99,13 +98,6 @@
       background:#333; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;
     }
 
-    /* --- Fun Fact --- */
-    .fact{
-      margin:16px auto 6px; max-width:780px; padding:10px 14px; border-radius:12px;
-      background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.08);
-      font-style: italic;
-    }
-
     @media (max-width:600px){
       .timer-card{ min-width: 92%; }
       .count-val{ font-size: 20px; }
@@ -121,6 +113,7 @@
       <a href="about.html">About</a>
       <a href="wishes.html">Wishes</a>
       <a href="memories.html">Memories</a>
+      <a href="quiz.html">Quiz</a>
     </nav>
   </header>
 
@@ -157,8 +150,6 @@
         <source src="song.mp3" type="audio/mpeg">
       </audio>
     </div>
-
-    <div id="funFact" class="fact"></div>
   </section>
 
   <footer>Made with ❤️ for Riya</footer>
@@ -242,19 +233,5 @@
       }catch(e){ alert("Tap again to allow audio on your device."); }
     });
   </script>
-
-  <!-- 🌸 Fun facts -->
-  <script>
-    const facts = [
-      "Riya once finished 5 Kinder Joys in one sitting 🍫",
-      "She can’t stop smiling when she sees Chris Evans 💕",
-      "Her laughter is more contagious than a yawn 😂",
-      "She brightens every room she walks into 🌸",
-      "Level 100 in spreading joy ✨"
-    ];
-    document.getElementById("funFact").textContent =
-      facts[Math.floor(Math.random()*facts.length)];
-  </script>
 </body>
 </html>
-
