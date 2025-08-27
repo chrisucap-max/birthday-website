@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏆 Riya Quiz — Leaderboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Day.js for reveal timing in IST -->
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+
+  <style>
+    .wrap { max-width: 860px; margin: 18px auto; padding: 16px; }
+    .card { background:#fff; border-radius:14px; padding:16px; box-shadow:0 6px 16px rgba(0,0,0,.08); }
+    .status { font-weight: 600; margin: 10px 0 0; }
+    .controls { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 10px 0 0; }
+    table{ width:100%; border-collapse:collapse; margin-top: 10px; }
+    th, td{ padding:10px; border-bottom:1px solid #eee; text-align:left; }
+    th{ background:#ffe6f0; border-bottom:2px solid #ffb3cd; }
+    .tiny{ color:#666; font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏆 Riya’s Quiz — Leaderboard</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="wishes.html">Wishes</a>
+      <a href="memories.html">Memories</a>
+      <a href="quiz.html">Quiz</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </nav>
+  </header>
+
+  <section class="wrap">
+    <div class="card">
+      <h2>Live Scores</h2>
+      <p class="tiny">Reveals after Riya submits all answers (or use <code>?preview=1</code> to test).</p>
+
+      <div id="msg" class="status">Checking status…</div>
+
+      <div id="board" style="display:none;">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Submitted</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="controls">
+          <button id="refreshBtn">🔄 Refresh</button>
+          <label class="tiny"><input type="checkbox" id="autoChk"> Auto-refresh (20s)</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Made with ❤️ for Riya</footer>
+
+  <script>
+    // ===== Supabase =====
+    const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ===== Day.js =====
+    dayjs.extend(dayjs_plugin_utc);
+    dayjs.extend(dayjs_plugin_timezone);
+
+    // Config: reveal at Sept 2, 00:00 IST
+    const REVEAL_TZ = 'Asia/Kolkata';
+    const REVEAL_MONTH = 9; // September (1-12 for readability)
+    const REVEAL_DAY = 2;
+    const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+
+    // MUST MATCH your quiz question count
+    const QUESTION_COUNT = 5;
+
+    const msg = document.getElementById('msg');
+    const board = document.getElementById('board');
+    const tbody = document.getElementById('tbody');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const autoChk = document.getElementById('autoChk');
+    let timer = null;
+
+    refreshBtn.onclick = () => render();
+    autoChk.onchange = () => {
+      if(autoChk.checked){
+        timer = setInterval(render, 20000);
+      } else if(timer){
+        clearInterval(timer); timer = null;
+      }
+    };
+
+    function nextRevealDate(){
+      const now = dayjs();
+      let y = now.year();
+      let t = dayjs.tz(`${y}-${String(REVEAL_MONTH).padStart(2,'0')}-${String(REVEAL_DAY).padStart(2,'0')} 00:00`, REVEAL_TZ);
+      if(t.isBefore(now)) t = dayjs.tz(`${y+1}-${String(REVEAL_MONTH).padStart(2,'0')}-${String(REVEAL_DAY).padStart(2,'0')} 00:00`, REVEAL_TZ);
+      return t;
+    }
+    function gateOpen(){
+      if(PREVIEW) return true;
+      const t = nextRevealDate();
+      return dayjs().isAfter(t) || dayjs().isSame(t);
+    }
+
+    async function render(){
+      // 1) Check Riya answers
+      const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index, choice_index');
+      if(rerr){ msg.textContent = "Error: " + rerr.message; board.style.display='none'; return; }
+      const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
+      const missing = [...Array(QUESTION_COUNT).keys()].filter(i => !riyaMap.has(i)).length;
+
+      // 2) Gate check
+      const open = gateOpen();
+      if(!open || missing > 0){
+        const t = nextRevealDate();
+        msg.innerHTML = `⏳ Hidden for now.<br>${
+          open ? "" : `Reveals on <b>${t.format("MMM D, YYYY")}</b> at <b>12:00 AM (${REVEAL_TZ})</b>.<br>`
+        }${missing>0 ? `Waiting for Riya to answer <b>${missing}</b> more question(s).` : ""}${
+          PREVIEW ? "<br><small>(Preview override ON — but Riya must still finish to compute scores.)</small>" : ""
+        }`;
+        board.style.display = 'none';
+        return;
+      }
+
+      // 3) Load players & answers
+      const { data: players, error: perr } = await supa.from('players').select('id,name,created_at');
+      if(perr){ msg.textContent = "Error: " + perr.message; board.style.display='none'; return; }
+
+      const { data: pa, error: aerr } = await supa.from('player_answers').select('player_id,q_index,choice_index');
+      if(aerr){ msg.textContent = "Error: " + aerr.message; board.style.display='none'; return; }
+
+      // 4) Compute scores
+      const scoreMap = new Map(players.map(p => [p.id, 0]));
+      pa.forEach(a => {
+        const correct = riyaMap.get(a.q_index);
+        if(correct != null && a.choice_index === correct){
+          scoreMap.set(a.player_id, (scoreMap.get(a.player_id)||0) + 1);
+        }
+      });
+
+      const rows = players.map(p => ({
+        name: p.name,
+        score: scoreMap.get(p.id)||0,
+        time: new Date(p.created_at).getTime()
+      }))
+      .sort((a,b)=> b.score - a.score || a.time - b.time);
+
+      // 5) Render
+      msg.textContent = "✅ Scores are live.";
+      board.style.display = 'block';
+      tbody.innerHTML = "";
+      rows.forEach((r,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td><b>${r.score}/${QUESTION_COUNT}</b></td><td>${dayjs(r.time).format('MMM D, HH:mm')}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
