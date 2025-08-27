@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home - Riya's Birthday</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    @keyframes floatUp {
+      from { transform: translateY(40px); opacity: 1; }
+      to   { transform: translateY(-110vh); opacity: 0; }
+    }
+    .balloon {
+      position: fixed;
+      bottom: -40px;
+      pointer-events: none;
+      z-index: 0;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
+    }
+  </style>
 </head>
 <body>
 <header>
@@ -23,5 +36,22 @@
 </section>
 
 <footer>Made with ❤️ for Riya</footer>
+
+<!-- 🎈 Floating Balloons Script -->
+<script>
+  function spawnBalloon(){
+    const b = document.createElement('div');
+    b.className = 'balloon';
+    b.textContent = Math.random() < .5 ? '🎈' : '🎉';
+    const size = 24 + Math.random()*28;
+    b.style.left = (5 + Math.random()*90) + 'vw';
+    b.style.fontSize = size + 'px';
+    b.style.animation = `floatUp ${6 + Math.random()*6}s linear forwards`;
+    document.body.appendChild(b);
+    setTimeout(()=> b.remove(), 12000);
+  }
+  setInterval(spawnBalloon, 1200);
+  for(let i=0;i<6;i++) setTimeout(spawnBalloon, i*250);
+</script>
 </body>
 </html>
