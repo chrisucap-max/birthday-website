@@ -31,6 +31,7 @@
     /* Leaderboard section */
     .leader-card{ margin-top:16px; background:#fff; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.08); padding:12px 14px; }
     .leader-card h3{ margin:6px 0 8px; }
+    .winner-line{ font-weight:800; margin:6px 0 10px; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ padding:8px; border-bottom:1px solid #eee; text-align:left; }
     th{ background:#ffe6f0; border-bottom:2px solid #ffb3cd; }
@@ -88,6 +89,7 @@
     <!-- Embedded Leaderboard -->
     <section id="leaderboardSection" class="leader-card" style="display:none;">
       <h3>🏆 Leaderboard</h3>
+      <div id="winnerLine" class="winner-line" style="display:none;"></div>
       <p class="tiny">As soon as Riya has answered all questions, the scores below will appear.</p>
       <div id="lbMsg" class="status">Checking…</div>
       <div id="lbBoard" style="display:none;">
@@ -144,6 +146,7 @@
     const lbBoard = document.getElementById('lbBoard');
     const lbBody = document.getElementById('lbBody');
     const lbRefresh = document.getElementById('lbRefresh');
+    const winnerLine = document.getElementById('winnerLine');
 
     document.getElementById("startBtn").onclick = startQuiz;
     document.getElementById("playAgain").onclick = () => location.reload();
@@ -211,8 +214,6 @@
         playBox.style.display = "none";
         doneBox.style.display = "block";
         resultEl.textContent = `Thanks, ${playerName}! Your answers are saved. 🎉`;
-        // Optionally auto-open leaderboard after finishing:
-        // lbSection.style.display = 'block'; buildInlineLeaderboard();
       }
     };
 
@@ -220,6 +221,7 @@
        Leaderboard (NO date gate)
        - Visible as soon as Riya has answered all questions
        - Auto-refresh every 20s once visible
+       - Shows Winner(s): names — score/total
     ============================ */
     let lbTimer = null;
     function startAutoRefresh(){
@@ -234,12 +236,14 @@
       try{
         lbMsg.textContent = "Checking…";
         lbBoard.style.display = "none";
+        winnerLine.style.display = "none";
+        winnerLine.textContent = "";
 
         // 1) Fetch Riya's answers
         const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index,choice_index');
         if(rerr){ console.error("riya_answers error:", rerr); lbMsg.textContent = "Error loading Riya's answers: " + rerr.message; stopAutoRefresh(); return; }
 
-        // Build required indices 0..QUESTION_COUNT-1 and test presence
+        // Ensure Riya answered all indices 0..QUESTION_COUNT-1
         const required = Array.from({length: QUESTION_COUNT}, (_,i)=>i);
         const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
         const missingIdx = required.filter(i => !riyaMap.has(i));
@@ -275,17 +279,27 @@
         });
 
         const rows = players.map(p => ({
-          name: p.name,
+          id: p.id,
+          name: p.name || "(no name)",
           score: scoreMap.get(p.id) || 0,
           time: new Date(p.created_at).getTime()
         }))
         .sort((a,b)=> b.score - a.score || a.time - b.time);
 
-        // 5) Render
+        // 5) Determine winner(s)
+        const topScore = rows.length ? rows[0].score : 0;
+        const winners = rows.filter(r => r.score === topScore).map(r => r.name);
+        if(rows.length){
+          winnerLine.textContent = `🏆 Winner${winners.length>1?'s':''}: ${winners.join(', ')} — ${topScore}/${QUESTION_COUNT}`;
+          winnerLine.style.display = "block";
+        }
+
+        // 6) Render table
         lbBody.innerHTML = "";
         rows.forEach((r,i)=>{
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${i+1}</td><td>${r.name || '(no name)'}</td><td><b>${r.score}/${QUESTION_COUNT}</b></td><td>${(window.dayjs? dayjs(r.time).format('MMM D, HH:mm') : new Date(r.time).toLocaleString())}</td>`;
+          const when = (window.dayjs ? dayjs(r.time).format('MMM D, HH:mm') : new Date(r.time).toLocaleString());
+          tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td><b>${r.score}/${QUESTION_COUNT}</b></td><td>${when}</td>`;
           lbBody.appendChild(tr);
         });
 
