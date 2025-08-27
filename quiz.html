@@ -9,10 +9,8 @@
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Day.js for reveal timing in IST and formatting -->
+  <!-- Day.js (only used to format timestamps nicely) -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
 
   <style>
     /* Page-local styles to complement your style.css */
@@ -57,7 +55,7 @@
   <section class="quiz-wrap">
     <div class="quiz-hero">
       <h2>🎮 How Well Do You Know Riya?</h2>
-      <p class="tiny">Answer now. The leaderboard reveals after Riya submits all answers — use <code>?preview=1</code> to test.</p>
+      <p class="tiny">Answer the questions. Scores will show as soon as Riya has submitted all of her answers.</p>
     </div>
 
     <!-- Player register -->
@@ -83,7 +81,6 @@
     <!-- After submit -->
     <div class="quiz-box" id="doneBox" style="display:none;">
       <div class="quiz-result" id="quizResult"></div>
-      <p class="tiny">You can check the leaderboard below once it’s revealed.</p>
       <div class="quiz-cta">
         <button id="playAgain" class="btn secondary">🔁 Play Again</button>
         <button id="showBoardBtn" class="btn">🏆 Show Leaderboard</button>
@@ -93,12 +90,12 @@
     <!-- Embedded Leaderboard -->
     <section id="leaderboardSection" class="leader-card" style="display:none;">
       <h3>🏆 Leaderboard</h3>
-      <p class="tiny">Reveals after Riya submits all answers (or add <code>?preview=1</code> to the URL to test).</p>
+      <p class="tiny">As soon as Riya has answered all questions, the scores below will appear.</p>
       <div id="lbMsg" class="status">Checking…</div>
       <div id="lbBoard" style="display:none;">
         <table>
           <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Submitted</th></tr></thead>
-        <tbody id="lbBody"></tbody>
+          <tbody id="lbBody"></tbody>
         </table>
         <div class="quiz-cta" style="margin-top:10px;">
           <button id="lbRefresh" class="btn secondary">🔄 Refresh</button>
@@ -114,17 +111,6 @@
     const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
     const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // ===== Day.js setup =====
-    dayjs.extend(dayjs_plugin_utc);
-    dayjs.extend(dayjs_plugin_timezone);
-
-    // ===== Reveal config =====
-    // Gate by IST midnight on Sept 2
-    const REVEAL_TZ = 'Asia/Kolkata';
-    const REVEAL_MONTH = 9;  // 1-12 (September)
-    const REVEAL_DAY = 2;
-    const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
 
     // ===== Quiz content (MUST match riya.html question order) =====
     const quizData = [
@@ -162,18 +148,6 @@
     lbRefresh.onclick = () => buildInlineLeaderboard();
 
     // ===== Helpers =====
-    function nextRevealDate(){
-      const now = dayjs();
-      let y = now.year();
-      let t = dayjs.tz(`${y}-${String(REVEAL_MONTH).padStart(2,'0')}-${String(REVEAL_DAY).padStart(2,'0')} 00:00`, REVEAL_TZ);
-      if(t.isBefore(now)) t = dayjs.tz(`${y+1}-${String(REVEAL_MONTH).padStart(2,'0')}-${String(REVEAL_DAY).padStart(2,'0')} 00:00`, REVEAL_TZ);
-      return t;
-    }
-    function revealOpen(){
-      if(PREVIEW) return true;
-      const t = nextRevealDate();
-      return dayjs().isAfter(t) || dayjs().isSame(t);
-    }
     function updateProgress(){ progressEl.textContent = `Question ${idx+1} / ${QUESTION_COUNT}`; }
 
     // ===== Quiz flow =====
@@ -212,7 +186,7 @@
       if(locked) return;
       locked = true;
 
-      // Save one answer row (primary key is (player_id, q_index) if you set it like that; if not, duplicates are okay)
+      // Save one answer row
       const { error } = await supa.from("player_answers").insert([{ player_id: playerId, q_index: idx, choice_index: i }]);
       if(error && !String(error.message).toLowerCase().includes("duplicate")){
         console.error(error);
@@ -236,7 +210,7 @@
       }
     };
 
-    // ===== Embedded Leaderboard logic =====
+    // ===== Embedded Leaderboard logic (NO date gate) =====
     async function buildInlineLeaderboard(){
       lbMsg.textContent = "Checking…";
       lbBoard.style.display = "none";
@@ -247,21 +221,16 @@
       const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
       const missing = [...Array(QUESTION_COUNT).keys()].filter(i => !riyaMap.has(i)).length;
 
-      // 2) Gate by reveal + completeness
-      const open = revealOpen();
-      if(!open || missing > 0){
-        const t = nextRevealDate();
-        lbMsg.innerHTML = `⏳ Leaderboard is hidden.<br>${
-          open ? "" : `Reveals on <b>${t.format("MMM D, YYYY")}</b> at <b>12:00 AM (${REVEAL_TZ})</b>.<br>`
-        }${missing>0 ? `Waiting for Riya to answer <b>${missing}</b> question(s).` : ""}${
-          PREVIEW ? "<br><small>(Preview override ON — but Riya must still finish to compute scores.)</small>" : ""
-        }`;
+      // 2) Only condition now: Riya must have finished all answers
+      if(missing > 0){
+        lbMsg.textContent = `⏳ Waiting for Riya to finish (${missing} question${missing>1?'s':''} left)…`;
         return;
       }
 
       // 3) Load players + answers
       const { data: players, error: perr } = await supa.from('players').select('id,name,created_at');
       if(perr){ lbMsg.textContent = "Error: " + perr.message; return; }
+
       const { data: pa, error: aerr } = await supa.from('player_answers').select('player_id,q_index,choice_index');
       if(aerr){ lbMsg.textContent = "Error: " + aerr.message; return; }
 
@@ -277,7 +246,7 @@
       const rows = players.map(p => ({
         name: p.name,
         score: scoreMap.get(p.id)||0,
-        time: new Date(p.created_at).getTime()
+        time: new Date(p.created_at).getTime(),
       }))
       .sort((a,b)=> b.score - a.score || a.time - b.time);
 
