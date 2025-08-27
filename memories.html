@@ -9,7 +9,7 @@
   <script>
     const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 </head>
 <body>
@@ -34,10 +34,7 @@
     </div>
   </div>
 
-  <div class="gallery" id="gallery">
-    <!-- Preloaded memories -->
-    <div class="thumb"><img src="1.jpeg" alt="Memory 1"></div>
-  </div>
+  <div class="gallery" id="gallery"></div>
 </section>
 
 <footer>Made with ❤️ for Riya</footer>
@@ -52,10 +49,19 @@
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
       const fileName = `riya-${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage.from("photos").upload(fileName, file);
-      if (error) { console.error(error); continue; }
-      const { data: { publicUrl } } = supabase.storage.from("photos").getPublicUrl(fileName);
-      addPhotoToGallery(publicUrl);
+
+      // ✅ Upload to Supabase
+      const { data, error } = await client.storage.from("photos").upload(fileName, file);
+
+      if (error) {
+        console.error("Upload error:", error.message);
+        alert("Upload failed: " + error.message);
+        continue;
+      }
+
+      // ✅ Get Public URL
+      const { data: urlData } = client.storage.from("photos").getPublicUrl(fileName);
+      addPhotoToGallery(urlData.publicUrl);
     }
   }
 
@@ -64,14 +70,15 @@
     wrap.className = "thumb";
     const img = document.createElement("img");
     img.src = url;
+    img.alt = "Memory";
     wrap.appendChild(img);
     gallery.appendChild(wrap);
   }
 
-  pickBtn.onclick = ()=> FI.click();
-  FI.onchange = e=> handleFiles(e.target.files);
-  DZ.addEventListener('drop', e=> { e.preventDefault(); handleFiles(e.dataTransfer.files); });
-  DZ.addEventListener('click', ()=> FI.click());
+  pickBtn.onclick = () => FI.click();
+  FI.onchange = e => handleFiles(e.target.files);
+  DZ.addEventListener('drop', e => { e.preventDefault(); handleFiles(e.dataTransfer.files); });
+  DZ.addEventListener('click', () => FI.click());
 </script>
 </body>
 </html>
