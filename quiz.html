@@ -5,14 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🎮 Riya Quiz</title>
   <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Day.js for reveal timing in IST and formatting -->
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+
   <style>
+    /* Page-local styles to complement your style.css */
     .quiz-wrap{ max-width: 760px; margin: 18px auto; padding: 16px; }
     .quiz-hero{ margin: 0 auto 12px; padding: 14px 16px; background: #fff; border-radius: 14px; box-shadow: 0 6px 16px rgba(0,0,0,.08); }
     .quiz-hero h2{ margin: 8px 0 4px; font-size: clamp(22px, 5vw, 36px); }
     .quiz-box{ background:#fff; border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.08); }
     .quiz-q{ font-size: 18px; font-weight: 700; margin: 6px 0 12px; }
-    .quiz-option{ display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px; background:#ffe6f0; border:2px solid #ff4081; border-radius:10px; cursor:pointer; }
+    .quiz-option{ display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px; background:#ffe6f0; border:2px solid #ff4081; border-radius:10px; cursor:pointer; transition: background .15s, transform .05s; }
+    .quiz-option:hover{ background:#ffd6e6; transform: translateY(-1px); }
     .quiz-option.correct{ background:#c2f7c2; border-color:#2ecc71; }
     .quiz-option.wrong{ background:#f9c0c0; border-color:#e74c3c; }
     .quiz-cta{ display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
@@ -21,10 +31,14 @@
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
     .quiz-result{ text-align:center; font-size:20px; font-weight:800; margin:12px 0 4px; }
     .tiny{ color:#666; font-size:12px; }
-    .leader{ margin-top:16px; background:#fff; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.08); padding:12px 14px; }
-    .leader h3{ margin:6px 0 8px; }
+
+    /* Leaderboard section */
+    .leader-card{ margin-top:16px; background:#fff; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.08); padding:12px 14px; }
+    .leader-card h3{ margin:6px 0 8px; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ padding:8px; border-bottom:1px solid #eee; text-align:left; }
+    th{ background:#ffe6f0; border-bottom:2px solid #ffb3cd; }
+    .status{ margin-top:10px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -36,13 +50,14 @@
       <a href="wishes.html">Wishes</a>
       <a href="memories.html">Memories</a>
       <a href="quiz.html">Quiz</a>
+      <a href="leaderboard.html">Leaderboard</a>
     </nav>
   </header>
 
   <section class="quiz-wrap">
     <div class="quiz-hero">
       <h2>🎮 How Well Do You Know Riya?</h2>
-      <p class="tiny">Answer, get saved to the scoreboard, and the winner is revealed once Riya submits her answers on her birthday (Sept 2)!</p>
+      <p class="tiny">Answer now. The leaderboard reveals after Riya submits all answers — use <code>?preview=1</code> to test.</p>
     </div>
 
     <!-- Player register -->
@@ -68,32 +83,50 @@
     <!-- After submit -->
     <div class="quiz-box" id="doneBox" style="display:none;">
       <div class="quiz-result" id="quizResult"></div>
-      <p class="tiny" id="revealMsg"></p>
-      <div id="leaderWrap" class="leader" style="display:none;">
-        <h3>🏆 Leaderboard</h3>
-        <table id="leaderTable">
-          <thead><tr><th>#</th><th>Name</th><th>Score</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <p class="tiny">You can check the leaderboard below once it’s revealed.</p>
       <div class="quiz-cta">
         <button id="playAgain" class="btn secondary">🔁 Play Again</button>
+        <button id="showBoardBtn" class="btn">🏆 Show Leaderboard</button>
       </div>
     </div>
+
+    <!-- Embedded Leaderboard -->
+    <section id="leaderboardSection" class="leader-card" style="display:none;">
+      <h3>🏆 Leaderboard</h3>
+      <p class="tiny">Reveals after Riya submits all answers (or add <code>?preview=1</code> to the URL to test).</p>
+      <div id="lbMsg" class="status">Checking…</div>
+      <div id="lbBoard" style="display:none;">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Submitted</th></tr></thead>
+        <tbody id="lbBody"></tbody>
+        </table>
+        <div class="quiz-cta" style="margin-top:10px;">
+          <button id="lbRefresh" class="btn secondary">🔄 Refresh</button>
+        </div>
+      </div>
+    </section>
   </section>
 
   <footer>Made with ❤️ for Riya</footer>
 
   <script>
-    // Supabase
+    // ===== Supabase client =====
     const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
     const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Config
-    const REVEAL_DATE_ISO = "2025-09-02T00:00:00+05:30"; // IST midnight; adjust if you want ET
+    // ===== Day.js setup =====
+    dayjs.extend(dayjs_plugin_utc);
+    dayjs.extend(dayjs_plugin_timezone);
 
-    // Quiz content (must match what Riya will answer in riya.html)
+    // ===== Reveal config =====
+    // Gate by IST midnight on Sept 2
+    const REVEAL_TZ = 'Asia/Kolkata';
+    const REVEAL_MONTH = 9;  // 1-12 (September)
+    const REVEAL_DAY = 2;
+    const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+
+    // ===== Quiz content (MUST match riya.html question order) =====
     const quizData = [
       { q: "💖 Who is Riya’s celebrity crush?", opts: ["Chris Hemsworth","Chris Evans","Shah Rukh Khan","Harry Styles"] },
       { q: "🍫 What sweet does Riya absolutely love?", opts: ["Ferrero Rocher","Kinder Joy","Laddu","Brownies"] },
@@ -101,45 +134,63 @@
       { q: "🎂 When is Riya’s birthday?", opts: ["Aug 15","Sep 2","Oct 10","Jan 1"] },
       { q: "🎬 What kind of movies does Riya vibe with most?", opts: ["Action","Rom-com","Horror","Documentary"] }
     ];
+    const QUESTION_COUNT = quizData.length;
 
-    // State
+    // ===== State =====
     let playerId = null, playerName = "", idx = 0, locked = false;
-    let answers = new Array(quizData.length).fill(null);
 
-    // Elements
+    // ===== Elements =====
     const regBox = document.getElementById("regBox");
     const playBox = document.getElementById("playBox");
     const doneBox = document.getElementById("doneBox");
-
     const progressEl = document.getElementById("progress");
     const qEl = document.getElementById("quizQ");
     const optEl = document.getElementById("quizOpts");
     const nextBtn = document.getElementById("nextBtn");
     const resultEl = document.getElementById("quizResult");
-    const revealMsg = document.getElementById("revealMsg");
-    const leaderWrap = document.getElementById("leaderWrap");
-    const leaderTable = document.querySelector("#leaderTable tbody");
+    const showBoardBtn = document.getElementById("showBoardBtn");
+
+    const lbSection = document.getElementById('leaderboardSection');
+    const lbMsg = document.getElementById('lbMsg');
+    const lbBoard = document.getElementById('lbBoard');
+    const lbBody = document.getElementById('lbBody');
+    const lbRefresh = document.getElementById('lbRefresh');
 
     document.getElementById("startBtn").onclick = startQuiz;
     document.getElementById("playAgain").onclick = () => location.reload();
+    showBoardBtn.onclick = () => { lbSection.style.display = 'block'; buildInlineLeaderboard(); };
+    lbRefresh.onclick = () => buildInlineLeaderboard();
 
+    // ===== Helpers =====
+    function nextRevealDate(){
+      const now = dayjs();
+      let y = now.year();
+      let t = dayjs.tz(`${y}-${String(REVEAL_MONTH).padStart(2,'0')}-${String(REVEAL_DAY).padStart(2,'0')} 00:00`, REVEAL_TZ);
+      if(t.isBefore(now)) t = dayjs.tz(`${y+1}-${String(REVEAL_MONTH).padStart(2,'0')}-${String(REVEAL_DAY).padStart(2,'0')} 00:00`, REVEAL_TZ);
+      return t;
+    }
+    function revealOpen(){
+      if(PREVIEW) return true;
+      const t = nextRevealDate();
+      return dayjs().isAfter(t) || dayjs().isSame(t);
+    }
+    function updateProgress(){ progressEl.textContent = `Question ${idx+1} / ${QUESTION_COUNT}`; }
+
+    // ===== Quiz flow =====
     async function startQuiz(){
       const input = document.getElementById("playerName");
       playerName = (input.value || "").trim();
       if(!playerName){ alert("Please enter your name."); return; }
 
-      // Create player row
       const { data, error } = await supa.from("players").insert([{ name: playerName }]).select().single();
       if(error){ alert("Could not start: " + error.message); return; }
       playerId = data.id;
 
       regBox.style.display = "none";
       playBox.style.display = "block";
-      idx = 0; answers.fill(null);
+      idx = 0;
       loadQ();
     }
-
-    function updateProgress(){ progressEl.textContent = `Question ${idx+1} / ${quizData.length}`; }
 
     function loadQ(){
       locked = false;
@@ -160,86 +211,85 @@
     async function choose(i, btn){
       if(locked) return;
       locked = true;
-      answers[idx] = i;
 
-      // Save per-question answer (upsert via insert on PK conflict not available client-side; we just insert primary-key unique)
+      // Save one answer row (primary key is (player_id, q_index) if you set it like that; if not, duplicates are okay)
       const { error } = await supa.from("player_answers").insert([{ player_id: playerId, q_index: idx, choice_index: i }]);
-      if(error && !error.message.includes("duplicate key")){ console.error(error); alert("Save failed: " + error.message); }
+      if(error && !String(error.message).toLowerCase().includes("duplicate")){
+        console.error(error);
+        alert("Save failed: " + error.message);
+      }
 
-      // Visual feedback
+      // Visual feedback (we don't know correct yet—just show selected)
       const all = optEl.querySelectorAll(".quiz-option");
       all.forEach(b => b.disabled = true);
-      btn.classList.add("correct"); // we don't know correct yet; just highlight choice
+      btn.classList.add("correct");
       nextBtn.disabled = false;
     }
 
     nextBtn.onclick = async () => {
       idx++;
-      if(idx < quizData.length){ loadQ(); }
+      if(idx < QUESTION_COUNT){ loadQ(); }
       else{
         playBox.style.display = "none";
         doneBox.style.display = "block";
         resultEl.textContent = `Thanks, ${playerName}! Your answers are saved. 🎉`;
-        await maybeShowLeaderboard();
       }
     };
 
-    async function maybeShowLeaderboard(){
-      // Check if reveal date passed AND Riya has answered ALL
-      const revealPassed = new Date() >= new Date(REVEAL_DATE_ISO);
+    // ===== Embedded Leaderboard logic =====
+    async function buildInlineLeaderboard(){
+      lbMsg.textContent = "Checking…";
+      lbBoard.style.display = "none";
 
-      // Count Riya answers
-      const { data: ra, error: rerr } = await supa.from("riya_answers").select("q_index, choice_index");
-      if(rerr){ console.error(rerr); revealMsg.textContent = "Could not check Riya's answers yet."; return; }
-
+      // 1) Fetch Riya's answers
+      const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index,choice_index');
+      if(rerr){ lbMsg.textContent = "Error: " + rerr.message; return; }
       const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
-      const allAnsweredByRiya = quizData.every((_, i) => riyaMap.has(i));
+      const missing = [...Array(QUESTION_COUNT).keys()].filter(i => !riyaMap.has(i)).length;
 
-      if(!revealPassed || !allAnsweredByRiya){
-        const missing = quizData.filter((_, i)=>!riyaMap.has(i)).length;
-        revealMsg.textContent = `⏳ Scores reveal on Riya’s birthday once she answers all questions! Missing from Riya: ${missing}`;
-        leaderWrap.style.display = "none";
+      // 2) Gate by reveal + completeness
+      const open = revealOpen();
+      if(!open || missing > 0){
+        const t = nextRevealDate();
+        lbMsg.innerHTML = `⏳ Leaderboard is hidden.<br>${
+          open ? "" : `Reveals on <b>${t.format("MMM D, YYYY")}</b> at <b>12:00 AM (${REVEAL_TZ})</b>.<br>`
+        }${missing>0 ? `Waiting for Riya to answer <b>${missing}</b> question(s).` : ""}${
+          PREVIEW ? "<br><small>(Preview override ON — but Riya must still finish to compute scores.)</small>" : ""
+        }`;
         return;
       }
 
-      // Build scores by comparing each player's answers to Riya's
-      const { data: players, error: perr } = await supa.from("players").select("id,name,created_at");
-      if(perr){ console.error(perr); return; }
+      // 3) Load players + answers
+      const { data: players, error: perr } = await supa.from('players').select('id,name,created_at');
+      if(perr){ lbMsg.textContent = "Error: " + perr.message; return; }
+      const { data: pa, error: aerr } = await supa.from('player_answers').select('player_id,q_index,choice_index');
+      if(aerr){ lbMsg.textContent = "Error: " + aerr.message; return; }
 
-      const { data: allpa, error: aerr } = await supa.from("player_answers")
-        .select("player_id,q_index,choice_index");
-      if(aerr){ console.error(aerr); return; }
-
-      const scoreMap = new Map(); // player_id -> score
-      players.forEach(p => scoreMap.set(p.id, 0));
-      allpa.forEach(a => {
+      // 4) Compute scores
+      const scoreMap = new Map(players.map(p => [p.id, 0]));
+      pa.forEach(a => {
         const correct = riyaMap.get(a.q_index);
         if(correct != null && a.choice_index === correct){
-          scoreMap.set(a.player_id, (scoreMap.get(a.player_id)||0)+1);
+          scoreMap.set(a.player_id, (scoreMap.get(a.player_id)||0) + 1);
         }
       });
 
-      // Make leaderboard
       const rows = players.map(p => ({
         name: p.name,
         score: scoreMap.get(p.id)||0,
         time: new Date(p.created_at).getTime()
       }))
-      .sort((a,b)=> b.score - a.score || a.time - b.time); // higher score wins; earlier submit wins tie
+      .sort((a,b)=> b.score - a.score || a.time - b.time);
 
-      // Render table
-      leaderTable.innerHTML = "";
+      // 5) Render
+      lbMsg.textContent = "✅ Scores are live.";
+      lbBoard.style.display = "block";
+      lbBody.innerHTML = "";
       rows.forEach((r,i)=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td>${r.score}/${quizData.length}</td>`;
-        leaderTable.appendChild(tr);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td><b>${r.score}/${QUESTION_COUNT}</b></td><td>${dayjs(r.time).format('MMM D, HH:mm')}</td>`;
+        lbBody.appendChild(tr);
       });
-
-      // Announce winner(s)
-      const topScore = rows.length ? rows[0].score : 0;
-      const winners = rows.filter(r => r.score === topScore).map(r=>r.name);
-      revealMsg.textContent = `🏆 Winner${winners.length>1?'s':''}: ${winners.join(', ')} with ${topScore}/${quizData.length}!`;
-      leaderWrap.style.display = "block";
     }
   </script>
 </body>
