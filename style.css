@@ -1,3 +1,4 @@
+/* === Global Styles === */
 body {
   font-family: 'Poppins', sans-serif;
   margin: 0;
@@ -6,23 +7,30 @@ body {
   text-align: center;
 }
 
+/* === Header & Navigation === */
 header {
   background: #ff4081;
   color: white;
   padding: 16px;
 }
 
+nav {
+  margin-top: 10px;
+}
+
 nav a {
   color: white;
-  margin: 0 10px;
+  margin: 0 12px;
   text-decoration: none;
   font-weight: 600;
+  font-size: 16px;
 }
 
 nav a:hover {
   text-decoration: underline;
 }
 
+/* === Sections === */
 .section {
   padding: 20px;
 }
@@ -31,16 +39,74 @@ footer {
   margin-top: 30px;
   padding: 10px;
   background: #f1f1f1;
+  font-size: 14px;
 }
 
+/* === Wishes Wall === */
 .wish {
   background: #ffe6f0;
   margin: 10px auto;
   padding: 10px;
   border-radius: 8px;
   max-width: 400px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: left;
 }
 
+/* Wishes Form */
+#wishForm input,
+#wishForm textarea {
+  width: 250px;
+  padding: 10px;
+  margin: 5px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  resize: none; /* prevent textarea resizing */
+  box-sizing: border-box;
+}
+
+/* Align inline on desktop */
+#wishForm {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Button */
+#wishForm button {
+  background: #ff4081;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#wishForm button:hover {
+  background: #e2336d;
+}
+
+/* 📱 Mobile: stack vertically */
+@media (max-width: 600px) {
+  #wishForm {
+    flex-direction: column;
+    align-items: center;
+  }
+  #wishForm input,
+  #wishForm textarea,
+  #wishForm button {
+    width: 90%;
+    max-width: 350px;
+  }
+}
+
+/* === Memories Gallery === */
 .uploader {
   max-width: 640px;
   margin: 16px auto;
@@ -55,6 +121,10 @@ footer {
   border-radius: 12px;
   padding: 22px;
   cursor: pointer;
+}
+
+.dropzone:hover {
+  background: #fff5f8;
 }
 
 .actions {
@@ -72,4 +142,6 @@ footer {
 .thumb img {
   max-width: 200px;
   border-radius: 8px;
+  margin: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
