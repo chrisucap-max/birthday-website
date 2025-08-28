@@ -11,17 +11,14 @@
       --brand:#ff4081;
       --brand2:#6c63ff;
       --glass: rgba(255,255,255,.75);
-      --deep: rgba(0,0,0,.5);
     }
-
     body{
       background:
         radial-gradient(1200px 600px at 10% -10%, #ffe0ef 0%, transparent 50%),
         radial-gradient(1200px 600px at 90% 110%, #dfe3ff 0%, transparent 50%),
         #faf7fb;
+      font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
-
-    /* Fancy section card */
     .deck{
       max-width: 1080px; margin: 18px auto; padding: 18px;
       background: var(--glass);
@@ -30,7 +27,6 @@
       box-shadow: 0 10px 30px rgba(71, 34, 74, .08);
       backdrop-filter: blur(8px);
     }
-
     .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:12px 0}
     .btn{
       background: var(--brand);
@@ -42,6 +38,7 @@
     .btn:active{transform: translateY(0)}
     .btn.secondary{background: var(--brand2); box-shadow:0 4px 14px rgba(108,99,255,.25)}
     .btn.ghost{background: #fff; color:#222; border:2px solid #eee}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
 
     .meta{color:#666;font-size:12px;text-align:center;margin:6px 0}
 
@@ -54,19 +51,22 @@
     @media (max-width:680px){ .slideshow{ aspect-ratio:4/3 } }
 
     .slide-img{
-      width:100%;height:100%;object-fit:cover;display:block;
-      transform-origin: center center;
-      animation: kenburns 12s ease-in-out infinite;
+      width:100%;height:100%;display:block;
       opacity:0; transition: opacity .5s ease;
+      background:#000; /* nice letterbox when in contain mode */
     }
     .slide-img.show{ opacity:1 }
+
+    /* Fit modes */
+    .slide-img.fit-contain{ object-fit: contain; animation: none; }
+    .slide-img.fit-cover  { object-fit: cover;  animation: kenburns 12s ease-in-out infinite; }
     @keyframes kenburns{
       0%{ transform: scale(1.08) translate3d(0,0,0) }
       50%{ transform: scale(1.12) translate3d(2%, -2%, 0) }
       100%{ transform: scale(1.08) translate3d(0,0,0) }
     }
 
-    /* Overlay controls */
+    /* Overlay */
     .overlay{
       position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center;
       pointer-events:none;
@@ -112,6 +112,7 @@
   <h1>🌟 Memories Gallery</h1>
   <nav>
     <a href="index.html">Home</a>
+    <a href="about.html">About</a>
     <a href="wishes.html">Wishes</a>
     <a href="memories.html">Memories</a>
     <a href="quiz.html">Quiz</a>
@@ -136,12 +137,13 @@
         </select>
       </label>
       <button id="shuffleBtn" class="btn secondary" title="Reshuffle order" disabled>🔀 Shuffle</button>
+      <button id="fitToggleBtn" class="btn ghost" disabled>Fit: Contain</button>
       <button id="fullscreenBtn" class="btn ghost" disabled>⛶ Fullscreen</button>
     </div>
 
     <!-- Slideshow -->
     <div class="slideshow" id="slideshow">
-      <img id="slideImg" class="slide-img" alt="Slideshow">
+      <img id="slideImg" class="slide-img fit-contain" alt="Slideshow">
       <div id="slideCaption" class="caption">Loading photos…</div>
 
       <div class="overlay">
@@ -168,7 +170,7 @@
   const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
   const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const BUCKET = "photos"; // ensure Public, or switch to signed URLs
+  const BUCKET = "photos"; // make Public for getPublicUrl; else use signed URLs (see note below)
 
   // ===== UI refs =====
   const galleryEl = document.getElementById('gallery');
@@ -181,6 +183,7 @@
   const prevBtn    = document.getElementById('prevBtn');
   const speedSel   = document.getElementById('speedSel');
   const shuffleBtn = document.getElementById('shuffleBtn');
+  const fitToggleBtn = document.getElementById('fitToggleBtn');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
   const progressFill  = document.getElementById('progressFill');
   const countChip     = document.getElementById('countChip');
@@ -194,6 +197,7 @@
   let timer = null;
   let progressTimer = null;
   let progressMs = 0;
+  let fitMode = 'contain'; // 'contain' | 'cover'
 
   // ===== Helpers =====
   function shuffle(arr){
@@ -204,12 +208,7 @@
     return arr;
   }
   function enableControls(has){
-    playBtn.disabled = !has;
-    pauseBtn.disabled = !has;
-    nextBtn.disabled = !has;
-    prevBtn.disabled = !has;
-    shuffleBtn.disabled = !has;
-    fullscreenBtn.disabled = !has;
+    [playBtn,pauseBtn,nextBtn,prevBtn,shuffleBtn,fitToggleBtn,fullscreenBtn].forEach(b => b.disabled = !has);
   }
   function setCaption(p){
     slideCaption.textContent = p ? p.name : "No photos found.";
@@ -230,11 +229,7 @@
   function markDots(){
     [...dotsEl.children].forEach((d,i)=> d.classList.toggle("active", i===idx));
   }
-
-  function progressReset(){
-    progressMs = 0;
-    progressFill.style.width = "0%";
-  }
+  function progressReset(){ progressMs = 0; progressFill.style.width = "0%"; }
   function startProgress(){
     stopProgress();
     const interval = 50;
@@ -247,20 +242,22 @@
     }, interval);
   }
   function stopProgress(){ if(progressTimer){ clearInterval(progressTimer); progressTimer=null; } }
-
+  function applyFit(){
+    slideImg.classList.toggle('fit-contain', fitMode==='contain');
+    slideImg.classList.toggle('fit-cover',   fitMode==='cover');
+    fitToggleBtn.textContent = 'Fit: ' + (fitMode==='contain' ? 'Contain' : 'Cover');
+  }
   function updateSlide(){
     if(!photos.length){ setCaption(null); slideImg.classList.remove('show'); slideImg.src = ""; return; }
     const p = photos[ order[idx] ];
     slideImg.classList.remove('show'); // crossfade
-    // small delay so opacity transition restarts
     setTimeout(()=>{
       slideImg.src = p.url;
-      slideImg.onload = ()=> slideImg.classList.add('show');
+      slideImg.onload = ()=> { applyFit(); slideImg.classList.add('show'); };
     }, 30);
     setCaption(p);
     markDots();
   }
-
   function startTimer(){
     stopTimer();
     const interval = parseInt(speedSel.value,10) || 3000;
@@ -300,9 +297,14 @@
                         nameLower.match(/\.(jpg|jpeg|png|gif|webp|bmp|heic|svg)$/);
           if(isImg){
             const path = prefix ? `${prefix}/${item.name}` : item.name;
-            // If bucket is public:
+
+            // If bucket is Public:
             const { data: pub } = supa.storage.from(BUCKET).getPublicUrl(path);
             out.push({ url: pub.publicUrl, name: item.name, path });
+
+            // If bucket is Private, use signed URLs instead:
+            // const { data: signed } = await supa.storage.from(BUCKET).createSignedUrl(path, 3600);
+            // out.push({ url: signed.signedUrl, name: item.name, path });
           }
         }
       }
@@ -346,10 +348,9 @@
       div.title = p.name;
       div.onclick = ()=>{
         stopTimer();
-        idx = order.indexOf(i);
-        if(idx<0){ // if user clicked raw index, jump directly
-          idx = i;
-        }
+        // ensure idx is the position of this photo in current order
+        const pos = order.indexOf(i);
+        idx = (pos >= 0) ? pos : 0;
         progressReset();
         updateSlide();
         playBtn.disabled = false; pauseBtn.disabled = true;
@@ -365,15 +366,14 @@
   prevBtn.onclick = ()=>{ stopTimer(); idx = (idx - 1 + order.length) % order.length; progressReset(); updateSlide(); playBtn.disabled = false; pauseBtn.disabled = true; };
   speedSel.onchange = ()=>{ if(timer){ startTimer(); } startProgress(); };
   shuffleBtn.onclick = ()=>{ shuffle(order); idx = 0; progressReset(); updateSlide(); };
+  fitToggleBtn.onclick = ()=>{ fitMode = (fitMode==='contain') ? 'cover' : 'contain'; applyFit(); };
   fullscreenBtn.onclick = ()=>{
-    const el = document.documentElement;
     if(!document.fullscreenElement){
-      (slideshowEl.requestFullscreen ? slideshowEl.requestFullscreen() : el.requestFullscreen());
+      slideshowEl.requestFullscreen && slideshowEl.requestFullscreen();
     }else{
       document.exitFullscreen && document.exitFullscreen();
     }
   };
-
   // Keyboard shortcuts
   window.addEventListener('keydown', (e)=>{
     if(e.key === ' '){ e.preventDefault(); (timer ? pauseBtn.onclick() : playBtn.onclick()); }
