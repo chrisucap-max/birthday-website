@@ -5,12 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🎮 Riya Quiz</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Day.js just for pretty timestamps -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-
   <style>
     .quiz-wrap{ max-width: 760px; margin: 18px auto; padding: 16px; }
     .quiz-hero{ margin: 0 auto 12px; padding: 14px 16px; background: #fff; border-radius: 14px; box-shadow: 0 6px 16px rgba(0,0,0,.08); }
@@ -51,7 +47,7 @@
   <section class="quiz-wrap">
     <div class="quiz-hero">
       <h2>🎮 How Well Do You Know Riya?</h2>
-      <p class="tiny">Answer the 12 questions. The leaderboard appears automatically once Riya has saved all correct answers in her page.</p>
+      <p class="tiny">Answer all questions. The leaderboard appears automatically once Riya has saved the correct answers in <code>riya.html</code>.</p>
     </div>
 
     <!-- Player register -->
@@ -65,7 +61,7 @@
 
     <!-- Quiz -->
     <div class="quiz-box" id="playBox" style="display:none;">
-      <div id="progress" class="tiny">Question 1 / 12</div>
+      <div id="progress" class="tiny">Question 1 / 11</div>
       <div class="quiz-q" id="quizQ">Loading…</div>
       <div id="quizOpts"></div>
       <div class="quiz-cta">
@@ -104,37 +100,29 @@
   <footer>Made with ❤️ for Riya</footer>
 
   <script>
-    /* ===========================
-       Supabase client
-    ============================ */
+    // Supabase
     const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
     const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /* ===========================
-       Final 12 Questions + Options
-    ============================ */
+    // Final 11 Questions (duplicate removed; fav food has "Tiger prawns")
     const quizData = [
       { q: "🛒 If Riya goes shopping for 'just one thing,' what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
       { q: "🎨 What is Riya’s favourite colour?", opts: ["Black","Pink","Blue","Yellow"] },
       { q: "📚 What was Riya’s favourite subject in school?", opts: ["History","Literature","Science","Art"] },
-      { q: "🍴 What is Riya’s favourite food?", opts: ["Pizza","Momos","Biryani","Ice cream"] },
+      { q: "🍴 What is Riya’s favourite food?", opts: ["Pizza","Momos","Tiger prawns","Ice cream"] },
       { q: "🎶 Which artist or band is Riya’s favourite?", opts: ["BTS","Arijit Singh","Taylor Swift","Coldplay"] },
       { q: "✨ What is Riya’s hidden talent?", opts: ["Singing","Cooking","Drawing","Dancing"] },
       { q: "🚗 What is Riya’s favourite car?", opts: ["Mercedes","Mini Cooper","Scorpio","Jeep"] },
       { q: "🛌 What time does Riya usually go to sleep?", opts: ["Before midnight","Around 1–2am","3–4am","Depends on Netflix"] },
       { q: "🌸 What is Riya’s ideal way to relax after a stressful day?", opts: ["Watch Netflix","Listen to music","Sleep instantly","Go for a walk"] },
       { q: "🛍️ What’s the last thing Riya impulse-bought online?", opts: ["Clothes","Skincare","Phone case","Snacks"] },
-      { q: "🛒 If Riya goes shopping for one thing (again!), what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
       { q: "⏰ Is Riya a morning person or a night owl?", opts: ["Morning person","Both","Night owl","Neither"] }
     ];
     const QUESTION_COUNT = quizData.length;
 
-    /* ===========================
-       State & Elements
-    ============================ */
+    // State & elements
     let playerId = null, playerName = "", idx = 0, locked = false;
-
     const regBox = document.getElementById("regBox");
     const playBox = document.getElementById("playBox");
     const doneBox = document.getElementById("doneBox");
@@ -144,7 +132,6 @@
     const nextBtn = document.getElementById("nextBtn");
     const resultEl = document.getElementById("quizResult");
     const showBoardBtn = document.getElementById("showBoardBtn");
-
     const lbSection = document.getElementById('leaderboardSection');
     const lbMsg = document.getElementById('lbMsg');
     const lbBoard = document.getElementById('lbBoard');
@@ -157,9 +144,7 @@
     showBoardBtn.onclick = () => { lbSection.style.display = 'block'; buildInlineLeaderboard(); };
     lbRefresh.onclick = () => buildInlineLeaderboard();
 
-    /* ===========================
-       Quiz flow
-    ============================ */
+    // Quiz flow
     async function startQuiz(){
       const input = document.getElementById("playerName");
       playerName = (input.value || "").trim();
@@ -197,14 +182,12 @@
       if(locked) return;
       locked = true;
 
-      // Save one answer row
       const { error } = await supa.from("player_answers").insert([{ player_id: playerId, q_index: idx, choice_index: i }]);
       if(error && !String(error.message).toLowerCase().includes("duplicate")){
         console.error(error);
         alert("Save failed: " + error.message);
       }
 
-      // Visual feedback (mark chosen)
       const all = optEl.querySelectorAll(".quiz-option");
       all.forEach(b => { b.disabled = true; b.classList.remove('chosen'); });
       btn.classList.add("chosen");
@@ -221,20 +204,10 @@
       }
     };
 
-    /* ===========================
-       Leaderboard (NO date gate)
-       - Visible as soon as Riya has answered all questions
-       - Auto-refresh every 20s once visible
-       - Shows Winner(s): names — score/total
-    ============================ */
+    // Leaderboard
     let lbTimer = null;
-    function startAutoRefresh(){
-      if(lbTimer) return;
-      lbTimer = setInterval(buildInlineLeaderboard, 20000);
-    }
-    function stopAutoRefresh(){
-      if(lbTimer){ clearInterval(lbTimer); lbTimer = null; }
-    }
+    function startAutoRefresh(){ if(lbTimer) return; lbTimer = setInterval(buildInlineLeaderboard, 20000); }
+    function stopAutoRefresh(){ if(lbTimer){ clearInterval(lbTimer); lbTimer = null; } }
 
     async function buildInlineLeaderboard(){
       try{
@@ -243,11 +216,9 @@
         winnerLine.style.display = "none";
         winnerLine.textContent = "";
 
-        // 1) Fetch Riya's answers
         const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index,choice_index');
         if(rerr){ console.error("riya_answers error:", rerr); lbMsg.textContent = "Error loading Riya's answers: " + rerr.message; stopAutoRefresh(); return; }
 
-        // Ensure Riya answered all indices 0..QUESTION_COUNT-1
         const required = Array.from({length: QUESTION_COUNT}, (_,i)=>i);
         const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
         const missingIdx = required.filter(i => !riyaMap.has(i));
@@ -258,7 +229,6 @@
           return;
         }
 
-        // 2) Load players
         const { data: players, error: perr } = await supa.from('players').select('id,name,created_at');
         if(perr){ console.error("players error:", perr); lbMsg.textContent = "Error loading players: " + perr.message; stopAutoRefresh(); return; }
 
@@ -269,11 +239,9 @@
           return;
         }
 
-        // 3) Load player answers
         const { data: pa, error: aerr } = await supa.from('player_answers').select('player_id,q_index,choice_index,created_at');
         if(aerr){ console.error("player_answers error:", aerr); lbMsg.textContent = "Error loading answers: " + aerr.message; stopAutoRefresh(); return; }
 
-        // 4) Compute scores
         const scoreMap = new Map(players.map(p => [p.id, 0]));
         pa.forEach(a => {
           const correct = riyaMap.get(a.q_index);
@@ -290,7 +258,6 @@
         }))
         .sort((a,b)=> b.score - a.score || a.time - b.time);
 
-        // 5) Determine winner(s)
         const topScore = rows.length ? rows[0].score : 0;
         const winners = rows.filter(r => r.score === topScore).map(r => r.name);
         if(rows.length){
@@ -298,7 +265,6 @@
           winnerLine.style.display = "block";
         }
 
-        // 6) Render table
         lbBody.innerHTML = "";
         rows.forEach((r,i)=>{
           const tr = document.createElement('tr');
