@@ -1,140 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memories</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌟 Memories Gallery</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  </script>
   <style>
-    .thumb img {
-      max-width: 200px;
-      border-radius: 8px;
-      margin: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    .gallery {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 20px;
-    }
+    /* Page-local add-ons */
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:12px 0;}
+    .btn{background:#ff4081;color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+    .btn.secondary{background:#6c63ff}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+    .thumb{position:relative;aspect-ratio:1/1;overflow:hidden;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .slideshow{max-width:900px;margin:16px auto;background:#fff;border-radius:16px;box-shadow:0 6px 16px rgba(0,0,0,.08);padding:12px}
+    .slide-frame{position:relative;width:100%;aspect-ratio:16/10;background:#f7f7f7;border-radius:12px;overflow:hidden}
+    .slide-frame img{width:100%;height:100%;object-fit:contain;background:#000}
+    .slide-caption{margin-top:8px;text-align:center;color:#555;font-size:14px;word-break:break-word}
+    .meta{color:#666;font-size:12px;text-align:center;margin-top:6px}
+    @media (max-width:600px){ .slide-frame{aspect-ratio:4/3} }
   </style>
 </head>
 <body>
 <header>
   <h1>🌟 Memories Gallery</h1>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="wishes.html">Wishes</a>
-      <a href="memories.html">Memories</a>
-      <a href="quiz.html">Quiz</a>
-      <a href="leaderboard.html">Leaderboard</a>
-    </nav>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="wishes.html">Wishes</a>
+    <a href="memories.html">Memories</a>
+    <a href="quiz.html">Quiz</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
 </header>
 
 <section class="section">
-  <div class="uploader">
-    <div id="dropzone" class="dropzone">
-      <p><strong>Drag & drop</strong> photos here or click to choose</p>
-      <input id="fileInput" type="file" accept="image/*" multiple style="display:none">
+  <!-- Slideshow UI -->
+  <div class="slideshow">
+    <div class="controls">
+      <button id="playBtn" class="btn">▶️ Play</button>
+      <button id="pauseBtn" class="btn secondary" disabled>⏸ Pause</button>
+      <button id="prevBtn" class="btn secondary" disabled>⟵ Prev</button>
+      <button id="nextBtn" class="btn secondary" disabled>Next ⟶</button>
+      <label class="meta">Speed:
+        <select id="speedSel">
+          <option value="2000">2s</option>
+          <option value="3000" selected>3s</option>
+          <option value="5000">5s</option>
+          <option value="8000">8s</option>
+        </select>
+      </label>
+      <button id="shuffleBtn" class="btn secondary" title="Reshuffle order" disabled>🔀 Shuffle</button>
     </div>
-    <div class="actions">
-      <button id="pickBtn">📷 Choose Photos</button>
+    <div class="slide-frame">
+      <img id="slideImg" alt="Slideshow image">
     </div>
+    <div id="slideCaption" class="slide-caption">Loading photos…</div>
   </div>
 
+  <!-- All photos grid -->
+  <h2 style="text-align:center;margin-top:10px">All Photos</h2>
+  <p class="meta" id="countMeta">—</p>
   <div class="gallery" id="gallery"></div>
 </section>
 
 <footer>Made with ❤️ for Riya</footer>
 
 <script>
-  const gallery = document.getElementById("gallery");
-  const DZ = document.getElementById('dropzone');
-  const FI = document.getElementById('fileInput');
-  const pickBtn = document.getElementById('pickBtn');
+  // ===== Supabase config =====
+  const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const BUCKET = "photos"; // make sure bucket exists & is public for public URLs
 
-  // Render a photo in the gallery
-  function addPhotoToGallery(url) {
-    const wrap = document.createElement("div");
-    wrap.className = "thumb";
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = "Memory";
-    wrap.appendChild(img);
-    gallery.appendChild(wrap);
+  // ===== UI refs =====
+  const galleryEl = document.getElementById('gallery');
+  const countMeta = document.getElementById('countMeta');
+  const slideImg = document.getElementById('slideImg');
+  const slideCaption = document.getElementById('slideCaption');
+  const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const speedSel = document.getElementById('speedSel');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+
+  // ===== State =====
+  let photos = [];           // [{url, name, path}]
+  let order = [];            // randomized indices
+  let idx = 0;
+  let timer = null;
+
+  // ===== Helpers =====
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()* (i+1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+  function enableControls(has){
+    playBtn.disabled = !has;
+    pauseBtn.disabled = !has;
+    nextBtn.disabled = !has;
+    prevBtn.disabled = !has;
+    shuffleBtn.disabled = !has;
+  }
+  function setCaption(p){
+    slideCaption.textContent = p ? p.name : "No photos found.";
+  }
+  function updateSlide(){
+    if(!photos.length){ setCaption(null); slideImg.src = ""; return; }
+    const p = photos[ order[idx] ];
+    slideImg.src = p.url;
+    setCaption(p);
+  }
+  function startTimer(){
+    stopTimer();
+    const interval = parseInt(speedSel.value,10) || 3000;
+    timer = setInterval(()=>{
+      idx = (idx + 1) % order.length;
+      if(idx === 0) shuffle(order); // reshuffle on each loop for fresh randomness
+      updateSlide();
+    }, interval);
+  }
+  function stopTimer(){
+    if(timer){ clearInterval(timer); timer = null; }
   }
 
-  // Load all photos from the bucket
-  async function loadExistingPhotos() {
-    const { data, error } = await client
-      .storage
-      .from("photos")
-      .list("", { limit: 100 });
+  // ===== Load all photos from Storage =====
+  async function listAllFiles(prefix=""){
+    // Recursively list folders
+    const out = [];
+    let page = 0, perPage = 100;
+    while(true){
+      const { data, error } = await supa.storage.from(BUCKET).list(prefix, {
+        limit: perPage, offset: page*perPage, sortBy: { column: 'name', order: 'asc' }
+      });
+      if(error){ console.error(error); break; }
+      if(!data || data.length===0) break;
 
-    if (error) {
-      console.error("List error:", error.message);
-      return;
-    }
-
-    for (const item of data) {
-      const { data: urlData } = client
-        .storage
-        .from("photos")
-        .getPublicUrl(item.name);
-
-      if (urlData && urlData.publicUrl) {
-        addPhotoToGallery(urlData.publicUrl);
+      for(const item of data){
+        if(item.metadata && item.metadata.mimetype && item.metadata.mimetype.startsWith('image/')){
+          const path = prefix ? `${prefix}/${item.name}` : item.name;
+          // If bucket is public:
+          const { data: pub } = supa.storage.from(BUCKET).getPublicUrl(path);
+          out.push({ url: pub.publicUrl, name: item.name, path });
+        } else if(item.id === null && item.name){ // folder entry (Supabase returns folders with null id)
+          const sub = prefix ? `${prefix}/${item.name}` : item.name;
+          const subFiles = await listAllFiles(sub);
+          out.push(...subFiles);
+        } else if(item.name){ // sometimes mimetype missing – still try if it's an image extension
+          const lower = item.name.toLowerCase();
+          const isImg = lower.endsWith('.jpg')||lower.endsWith('.jpeg')||lower.endsWith('.png')||lower.endsWith('.gif')||lower.endsWith('.webp')||lower.endsWith('.bmp')||lower.endsWith('.heic')||lower.endsWith('.svg');
+          if(isImg){
+            const path = prefix ? `${prefix}/${item.name}` : item.name;
+            const { data: pub } = supa.storage.from(BUCKET).getPublicUrl(path);
+            out.push({ url: pub.publicUrl, name: item.name, path });
+          }
+        }
       }
+      if(data.length < perPage) break;
+      page++;
+    }
+    return out;
+  }
+
+  async function loadPhotos(){
+    slideCaption.textContent = "Loading photos…";
+    try{
+      const list = await listAllFiles("");
+      photos = list;
+      countMeta.textContent = photos.length ? `${photos.length} photo(s)` : "No photos yet.";
+      renderGallery();
+      if(photos.length){
+        order = shuffle([...photos.keys()]);
+        idx = 0;
+        updateSlide();
+        enableControls(true);
+      } else {
+        enableControls(false);
+        setCaption(null);
+      }
+    }catch(err){
+      console.error(err);
+      slideCaption.textContent = "Failed to load photos.";
+      enableControls(false);
     }
   }
 
-  // Upload new photos
-  async function handleFiles(files) {
-    for (const file of files) {
-      if (!file.type.startsWith("image/")) continue;
-      const fileName = `riya-${Date.now()}-${file.name}`;
-
-      const { error: uploadError } = await client
-        .storage
-        .from("photos")
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError.message);
-        alert("Upload failed: " + uploadError.message);
-        continue;
-      }
-
-      // Fetch the public URL for the uploaded photo
-      const { data: urlData } = client
-        .storage
-        .from("photos")
-        .getPublicUrl(fileName);
-
-      if (urlData && urlData.publicUrl) {
-        addPhotoToGallery(urlData.publicUrl);
-      }
-    }
+  function renderGallery(){
+    galleryEl.innerHTML = "";
+    photos.forEach(p=>{
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      div.innerHTML = `<img src="${p.url}" alt="${p.name}">`;
+      galleryEl.appendChild(div);
+    });
   }
 
-  // Event listeners
-  pickBtn.onclick = () => FI.click();
-  FI.onchange = e => handleFiles(e.target.files);
-  DZ.addEventListener('drop', e => {
-    e.preventDefault();
-    handleFiles(e.dataTransfer.files);
-  });
-  DZ.addEventListener('click', () => FI.click());
+  // ===== Wire controls =====
+  playBtn.onclick = ()=>{ startTimer(); playBtn.disabled = true; pauseBtn.disabled = false; };
+  pauseBtn.onclick = ()=>{ stopTimer(); playBtn.disabled = false; pauseBtn.disabled = true; };
+  nextBtn.onclick = ()=>{ stopTimer(); idx = (idx + 1) % order.length; updateSlide(); playBtn.disabled = false; pauseBtn.disabled = true; };
+  prevBtn.onclick = ()=>{ stopTimer(); idx = (idx - 1 + order.length) % order.length; updateSlide(); playBtn.disabled = false; pauseBtn.disabled = true; };
+  speedSel.onchange = ()=>{ if(timer) startTimer(); };
+  shuffleBtn.onclick = ()=>{ shuffle(order); idx = 0; updateSlide(); };
 
-  // Load photos when page opens
-  loadExistingPhotos();
+  // ===== Kickoff =====
+  loadPhotos();
 </script>
 </body>
 </html>
