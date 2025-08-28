@@ -18,14 +18,31 @@
     .deck{ max-width:1080px; margin:18px auto; padding:18px; background:var(--glass);
       border:1px solid rgba(255,255,255,.6); border-radius:22px; box-shadow:0 10px 30px rgba(71,34,74,.08);
       backdrop-filter: blur(8px); }
-    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center; margin:12px 0 }
+
+    /* Buttons */
     .btn{ background:var(--brand); color:#fff; border:none; padding:10px 14px; border-radius:999px; font-weight:700; cursor:pointer;
       transition: transform .08s ease, box-shadow .2s ease; box-shadow:0 4px 14px rgba(255,64,129,.25) }
     .btn:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(255,64,129,.35) }
     .btn.secondary{ background:var(--brand2) }
     .btn.ghost{ background:#fff; color:#222; border:2px solid #eee }
     .btn:disabled{ opacity:.6; cursor:not-allowed }
+
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center; margin:12px 0 }
     .meta{ color:#666; font-size:12px; text-align:center; margin:6px 0 }
+
+    /* Uploader */
+    .uploader{ background:#fff; border-radius:16px; padding:14px; box-shadow:0 6px 16px rgba(0,0,0,.08); margin-bottom:16px; }
+    .dropzone{ border:2px dashed var(--brand); border-radius:14px; padding:18px; text-align:center; cursor:pointer; background:#fff5fa; }
+    .dropzone.drag{ background:#ffe8f2 }
+    .up-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px }
+    .up-list{ margin-top:10px; font-size:14px }
+    .up-row{ display:flex; align-items:center; justify-content:space-between; background:#fafafa; border:1px solid #eee; padding:8px 10px; border-radius:10px; margin-top:6px }
+    .up-row small{ color:#666 }
+    .bar{ height:6px; background:#eee; border-radius:999px; overflow:hidden; margin-left:10px; flex:1 }
+    .bar > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand), var(--brand2)); transition: width .2s }
+    .hide{ display:none }
+
+    /* Slideshow */
     .slideshow{ position:relative; overflow:hidden; border-radius:18px; background:#000; aspect-ratio:16/9;
       box-shadow:0 16px 36px rgba(19,16,34,.22); }
     @media (max-width:680px){ .slideshow{ aspect-ratio:4/3 } }
@@ -34,20 +51,26 @@
     .slide-img.fit-contain{ object-fit:contain; animation:none; }
     .slide-img.fit-cover{ object-fit:cover; animation:kenburns 12s ease-in-out infinite; }
     @keyframes kenburns{ 0%{transform:scale(1.08)} 50%{transform:scale(1.12) translate3d(2%,-2%,0)} 100%{transform:scale(1.08)} }
+
     .overlay{ position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; pointer-events:none;
       background:linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,0) 55%); }
     .overlay .bar{ width:100%; padding:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; pointer-events:auto; }
     .chip{ background:rgba(255,255,255,.9); color:#222; border-radius:999px; padding:6px 10px; font-weight:700; font-size:12px; display:flex; gap:8px }
     .caption{ position:absolute; left:12px; bottom:56px; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.6); font-weight:700;
       background:rgba(0,0,0,.25); padding:6px 10px; border-radius:8px; max-width:75%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
     .progress{ position:absolute; left:0; right:0; bottom:0; height:4px; background:rgba(255,255,255,.25) }
     .progress .fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--brand), var(--brand2)); transition: width .2s linear }
     .dots{ display:flex; gap:6px; align-items:center }
     .dot{ width:8px; height:8px; border-radius:999px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.6) }
     .dot.active{ background:#fff }
+
+    /* Gallery */
     .gallery{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-top:14px }
     .thumb{ position:relative; aspect-ratio:1/1; overflow:hidden; border-radius:16px; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.08) }
     .thumb img{ width:100%; height:100%; object-fit:cover; display:block }
+
+    /* Music */
     .music-chip{ background:#fff; border:2px solid #eee; border-radius:999px; padding:6px 10px; display:flex; align-items:center; gap:8px }
     .music-chip input[type="range"]{ width:120px }
   </style>
@@ -68,10 +91,24 @@
 <section class="section">
   <div class="deck">
 
-    <!-- Music (autoplay muted; will unmute on first user interaction) -->
-    <audio id="bgMusic" src="WhatsApp Audio 2025-08-27 at 9.44.19 PM.mpeg" loop preload="auto"></audio>
+    <!-- MUSIC -->
+    <audio id="bgMusic" src="memories-song.mp3" loop preload="auto"></audio>
 
-    <!-- Toolbar -->
+    <!-- UPLOADER -->
+    <div class="uploader">
+      <div id="dropzone" class="dropzone">
+        <b>📤 Drag & drop</b> photos here or click to choose
+        <input id="fileInput" class="hide" type="file" accept="image/*" multiple>
+      </div>
+      <div class="up-actions">
+        <button id="chooseBtn" class="btn">📷 Choose Photos</button>
+        <button id="clearList" class="btn ghost">🧹 Clear List</button>
+      </div>
+      <div id="uploadList" class="up-list"></div>
+      <p class="meta">Tip: Images upload to your Supabase <code>photos</code> bucket. Keep each file &lt; 8–10MB for quicker uploads.</p>
+    </div>
+
+    <!-- SLIDESHOW CONTROLS -->
     <div class="controls">
       <button id="playBtn" class="btn">▶️ Play</button>
       <button id="pauseBtn" class="btn secondary" disabled>⏸ Pause</button>
@@ -97,7 +134,7 @@
       </span>
     </div>
 
-    <!-- Slideshow -->
+    <!-- SLIDESHOW -->
     <div class="slideshow" id="slideshow">
       <img id="slideImg" class="slide-img fit-contain" alt="Slideshow">
       <div id="slideCaption" class="caption">Loading photos…</div>
@@ -112,7 +149,7 @@
       <div class="progress"><div id="progressFill" class="fill"></div></div>
     </div>
 
-    <!-- Grid -->
+    <!-- GALLERY -->
     <h2 style="text-align:center;margin-top:14px">All Photos</h2>
     <p class="meta" id="countMeta">—</p>
     <div class="gallery" id="gallery"></div>
@@ -122,13 +159,19 @@
 <footer>Made with ❤️ for Riya</footer>
 
 <script>
-  // ===== Supabase config =====
+  /* ========= Supabase ========= */
   const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
   const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const BUCKET = "photos"; // Public bucket preferred. If Private, switch to signed URLs (see listAllFiles).
+  const BUCKET = "photos"; // Ensure storage policies allow INSERT for anon
 
-  // ===== UI refs =====
+  /* ========= UI refs ========= */
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const chooseBtn = document.getElementById('chooseBtn');
+  const clearList = document.getElementById('clearList');
+  const uploadList = document.getElementById('uploadList');
+
   const galleryEl = document.getElementById('gallery');
   const countMeta  = document.getElementById('countMeta');
   const slideImg   = document.getElementById('slideImg');
@@ -147,17 +190,17 @@
   const slideshowEl   = document.getElementById('slideshow');
 
   // Music
-  const bgMusic = document.getElementById('bgMusic');
+  const bgMusic   = document.getElementById('bgMusic');
   const musicPlay = document.getElementById('musicPlay');
-  const musicPause = document.getElementById('musicPause');
-  const musicVol = document.getElementById('musicVol');
+  const musicPause= document.getElementById('musicPause');
+  const musicVol  = document.getElementById('musicVol');
 
-  // ===== State =====
+  /* ========= Slideshow state ========= */
   let photos = []; let order = []; let idx = 0;
   let timer = null; let progressTimer = null; let progressMs = 0;
   let fitMode = 'contain'; // 'contain' | 'cover'
 
-  // ===== Helpers =====
+  /* ========= Helpers ========= */
   function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
   function enableControls(has){ [playBtn,pauseBtn,nextBtn,prevBtn,shuffleBtn,fitToggleBtn,fullscreenBtn].forEach(b => b.disabled = !has); }
   function setCaption(p){ slideCaption.textContent = p ? p.name : "No photos found."; }
@@ -182,7 +225,7 @@
   }
   function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } stopProgress(); try{ bgMusic.pause(); }catch(_){ } }
 
-  // ===== Storage listing (recursive) =====
+  /* ========= Storage listing (recursive) ========= */
   async function listAllFiles(prefix=""){
     const out = []; let page=0, perPage=100;
     while(true){
@@ -202,7 +245,7 @@
             // Public bucket:
             const { data: pub } = supa.storage.from(BUCKET).getPublicUrl(path);
             out.push({ url: pub.publicUrl, name: item.name, path });
-            // If bucket is Private, use signed URLs instead:
+            // Private? use signed URLs instead:
             // const { data: signed } = await supa.storage.from(BUCKET).createSignedUrl(path, 3600);
             // out.push({ url: signed.signedUrl, name: item.name, path });
           }
@@ -231,7 +274,64 @@
     });
   }
 
-  // ===== Wire slideshow controls =====
+  /* ========= Upload handling ========= */
+  chooseBtn.onclick = () => fileInput.click();
+  clearList.onclick = () => uploadList.innerHTML = "";
+
+  // drag n drop
+  ['dragenter','dragover'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('drag'); }));
+  dropzone.addEventListener('click', ()=> fileInput.click());
+  dropzone.addEventListener('drop', e=> handleFiles(e.dataTransfer.files));
+  fileInput.addEventListener('change', e=> handleFiles(e.target.files));
+
+  function sanitizeName(name){
+    return name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList || []).filter(f=> f.type.startsWith('image/'));
+    if(!files.length) return;
+
+    for(const file of files){
+      // progress row
+      const row = document.createElement('div');
+      row.className = 'up-row';
+      row.innerHTML = `<div><b>${file.name}</b> <small>(${Math.round(file.size/1024)} KB)</small></div><div class="bar"><i></i></div>`;
+      uploadList.prepend(row);
+      const fill = row.querySelector('i');
+
+      // create unique path: YYYY-MM-DD/ts_filename
+      const day = new Date().toISOString().slice(0,10);
+      const path = `${day}/${Date.now()}_${sanitizeName(file.name)}`;
+
+      try{
+        // We don't have streaming progress from supabase-js storage; fake a gentle progress then snap to 100%
+        let fake = 0; const tick = setInterval(()=>{ fake = Math.min(95, fake+7); fill.style.width = fake+'%'; }, 120);
+
+        const { error } = await supa.storage.from(BUCKET).upload(path, file, {
+          cacheControl: '3600',
+          contentType: file.type,
+          upsert: false
+        });
+        clearInterval(tick);
+        if(error) throw error;
+
+        fill.style.width = '100%';
+        row.firstElementChild.innerHTML += ' <small>— uploaded</small>';
+
+      }catch(err){
+        console.error(err);
+        row.firstElementChild.innerHTML += ` <small style="color:#d33">— failed: ${err.message}</small>`;
+        fill.style.background = '#d33';
+      }
+    }
+
+    // Refresh gallery/slideshow after all uploads
+    await loadPhotos();
+  }
+
+  /* ========= Slideshow controls ========= */
   playBtn.onclick=()=>{ startTimer(); playBtn.disabled=true; pauseBtn.disabled=false; };
   pauseBtn.onclick=()=>{ stopTimer(); playBtn.disabled=false; pauseBtn.disabled=true; };
   nextBtn.onclick=()=>{ stopTimer(); idx=(idx+1)%order.length; progressReset(); updateSlide(); playBtn.disabled=false; pauseBtn.disabled=true; };
@@ -242,25 +342,20 @@
   fullscreenBtn.onclick=()=>{ if(!document.fullscreenElement){ slideshowEl.requestFullscreen && slideshowEl.requestFullscreen(); } else { document.exitFullscreen && document.exitFullscreen(); } };
   window.addEventListener('keydown', (e)=>{ if(e.key===' '){ e.preventDefault(); (timer?pauseBtn.onclick():playBtn.onclick()); } if(e.key==='ArrowRight'){ nextBtn.onclick(); } if(e.key==='ArrowLeft'){ prevBtn.onclick(); } });
 
-  // ===== Music controls & autoplay behavior =====
-  // Start muted to comply with autoplay rules; unmute on first user interaction.
+  /* ========= Music (autoplay policy friendly) ========= */
   bgMusic.muted = true; bgMusic.volume = parseFloat(musicVol.value);
-  // Try silent autoplay:
-  bgMusic.play().catch(()=>{}); // OK if blocked
-  // Unmute on first click/tap anywhere:
+  bgMusic.play().catch(()=>{}); // may be blocked (muted OK)
   document.addEventListener('click', ()=>{ bgMusic.muted=false; }, { once:true });
-
   musicPlay.onclick = ()=>{ bgMusic.play().catch(()=>{}); };
   musicPause.onclick = ()=>{ bgMusic.pause(); };
   musicVol.oninput = ()=>{ bgMusic.volume = parseFloat(musicVol.value); };
 
-  // Keep music in sync with slideshow play/pause
-  function syncMusicPlaying(){ try{ if(timer){ bgMusic.play().catch(()=>{}); } else { bgMusic.pause(); } }catch(_){} }
-  // also hook into existing calls:
-  const _startTimer = startTimer; startTimer = function(){ _startTimer.apply(this, arguments); syncMusicPlaying(); };
-  const _stopTimer  = stopTimer;  stopTimer  = function(){ _stopTimer.apply(this, arguments);  syncMusicPlaying(); };
+  // Keep music synced with slideshow
+  function syncMusic(){ try{ if(timer){ bgMusic.play().catch(()=>{}); } else { bgMusic.pause(); } }catch(_){} }
+  const _start = startTimer; startTimer = function(){ _start.apply(this, arguments); syncMusic(); };
+  const _stop  = stopTimer;  stopTimer  = function(){ _stop.apply(this, arguments);  syncMusic(); };
 
-  // ===== Kickoff =====
+  /* ========= Kickoff ========= */
   loadPhotos();
 </script>
 </body>
