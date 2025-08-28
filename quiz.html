@@ -12,7 +12,6 @@
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
 
   <style>
-    /* Page-local styles (works with your style.css) */
     .quiz-wrap{ max-width: 760px; margin: 18px auto; padding: 16px; }
     .quiz-hero{ margin: 0 auto 12px; padding: 14px 16px; background: #fff; border-radius: 14px; box-shadow: 0 6px 16px rgba(0,0,0,.08); }
     .quiz-hero h2{ margin: 8px 0 4px; font-size: clamp(22px, 5vw, 36px); }
@@ -20,22 +19,20 @@
     .quiz-q{ font-size: 18px; font-weight: 700; margin: 6px 0 12px; }
     .quiz-option{ display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px; background:#ffe6f0; border:2px solid #ff4081; border-radius:10px; cursor:pointer; transition: background .15s, transform .05s; }
     .quiz-option:hover{ background:#ffd6e6; transform: translateY(-1px); }
-    .quiz-option.correct{ background:#c2f7c2; border-color:#2ecc71; }
+    .quiz-option.chosen{ background:#c2f7c2; border-color:#2ecc71; }
     .quiz-cta{ display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
     .btn{ background:#ff4081; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; text-decoration:none; }
     .btn.secondary{ background:#6c63ff; }
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
     .quiz-result{ text-align:center; font-size:20px; font-weight:800; margin:12px 0 4px; }
     .tiny{ color:#666; font-size:12px; }
-
-    /* Leaderboard section */
     .leader-card{ margin-top:16px; background:#fff; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.08); padding:12px 14px; }
     .leader-card h3{ margin:6px 0 8px; }
-    .winner-line{ font-weight:800; margin:6px 0 10px; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ padding:8px; border-bottom:1px solid #eee; text-align:left; }
     th{ background:#ffe6f0; border-bottom:2px solid #ffb3cd; }
     .status{ margin-top:10px; font-weight:600; }
+    header nav a[href="quiz.html"]{ font-weight:800; }
   </style>
 </head>
 <body>
@@ -43,6 +40,7 @@
     <h1>🎉 Riya’s Birthday</h1>
     <nav>
       <a href="index.html">Home</a>
+      <a href="about.html">About</a>
       <a href="wishes.html">Wishes</a>
       <a href="memories.html">Memories</a>
       <a href="quiz.html">Quiz</a>
@@ -53,7 +51,7 @@
   <section class="quiz-wrap">
     <div class="quiz-hero">
       <h2>🎮 How Well Do You Know Riya?</h2>
-      <p class="tiny">Answer the questions. The leaderboard appears automatically once Riya has submitted all of her answers.</p>
+      <p class="tiny">Answer the 12 questions. The leaderboard appears automatically once Riya has saved all correct answers in her page.</p>
     </div>
 
     <!-- Player register -->
@@ -67,7 +65,7 @@
 
     <!-- Quiz -->
     <div class="quiz-box" id="playBox" style="display:none;">
-      <div id="progress" class="tiny">Question 1 / 5</div>
+      <div id="progress" class="tiny">Question 1 / 12</div>
       <div class="quiz-q" id="quizQ">Loading…</div>
       <div id="quizOpts"></div>
       <div class="quiz-cta">
@@ -88,7 +86,7 @@
     <!-- Embedded Leaderboard -->
     <section id="leaderboardSection" class="leader-card" style="display:none;">
       <h3>🏆 Leaderboard</h3>
-      <div id="winnerLine" class="winner-line" style="display:none;"></div>
+      <div id="winnerLine" class="winner-line" style="display:none;font-weight:800;margin:6px 0 10px;"></div>
       <p class="tiny">As soon as Riya has answered all questions, the scores below will appear.</p>
       <div id="lbMsg" class="status">Checking…</div>
       <div id="lbBoard" style="display:none;">
@@ -114,14 +112,21 @@
     const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /* ===========================
-       Quiz content (MUST match riya.html)
+       Final 12 Questions + Options
     ============================ */
     const quizData = [
-      { q: "💖 Who is Riya’s celebrity crush?", opts: ["Chris Hemsworth","Chris Evans","Shah Rukh Khan","Harry Styles"] },
-      { q: "🍫 What sweet does Riya absolutely love?", opts: ["Ferrero Rocher","Kinder Joy","Laddu","Brownies"] },
-      { q: "🌸 How would you best describe Riya?", opts: ["Joyful","Serious","Sleepy","Grumpy"] },
-      { q: "🎂 When is Riya’s birthday?", opts: ["Aug 15","Sep 2","Oct 10","Jan 1"] },
-      { q: "🎬 What kind of movies does Riya vibe with most?", opts: ["Action","Rom-com","Horror","Documentary"] }
+      { q: "🛒 If Riya goes shopping for 'just one thing,' what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
+      { q: "🎨 What is Riya’s favourite colour?", opts: ["Black","Pink","Blue","Yellow"] },
+      { q: "📚 What was Riya’s favourite subject in school?", opts: ["History","Literature","Science","Art"] },
+      { q: "🍴 What is Riya’s favourite food?", opts: ["Pizza","Momos","Biryani","Ice cream"] },
+      { q: "🎶 Which artist or band is Riya’s favourite?", opts: ["BTS","Arijit Singh","Taylor Swift","Coldplay"] },
+      { q: "✨ What is Riya’s hidden talent?", opts: ["Singing","Cooking","Drawing","Dancing"] },
+      { q: "🚗 What is Riya’s favourite car?", opts: ["Mercedes","Mini Cooper","Scorpio","Jeep"] },
+      { q: "🛌 What time does Riya usually go to sleep?", opts: ["Before midnight","Around 1–2am","3–4am","Depends on Netflix"] },
+      { q: "🌸 What is Riya’s ideal way to relax after a stressful day?", opts: ["Watch Netflix","Listen to music","Sleep instantly","Go for a walk"] },
+      { q: "🛍️ What’s the last thing Riya impulse-bought online?", opts: ["Clothes","Skincare","Phone case","Snacks"] },
+      { q: "🛒 If Riya goes shopping for one thing (again!), what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
+      { q: "⏰ Is Riya a morning person or a night owl?", opts: ["Morning person","Both","Night owl","Neither"] }
     ];
     const QUESTION_COUNT = quizData.length;
 
@@ -199,10 +204,10 @@
         alert("Save failed: " + error.message);
       }
 
-      // Visual feedback (we don't know correct yet—just show selected)
+      // Visual feedback (mark chosen)
       const all = optEl.querySelectorAll(".quiz-option");
-      all.forEach(b => b.disabled = true);
-      btn.classList.add("correct");
+      all.forEach(b => { b.disabled = true; b.classList.remove('chosen'); });
+      btn.classList.add("chosen");
       nextBtn.disabled = false;
     }
 
