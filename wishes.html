@@ -3,29 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>💌 Wishes Wall</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap">
+  <title>Wishes Wall</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    .deleteBtn {
-      margin-left: 10px;
-      background: #ff4d4d;
-      color: white;
-      border: none;
-      padding: 3px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .deleteBtn:hover { background: #d93636; }
-    .wish {
-      background: #fff;
-      margin: 10px 0;
-      padding: 10px 14px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.08);
-    }
-  </style>
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+  <!-- 🎆 Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <header>
@@ -35,18 +24,13 @@
       <a href="about.html">About</a>
       <a href="wishes.html">Wishes</a>
       <a href="memories.html">Memories</a>
-      <a href="quiz.html">Quiz</a>
-      <a href="leaderboard.html">Leaderboard</a>
     </nav>
   </header>
-
   <section class="section">
-    <form id="wishForm" style="margin-bottom:16px;">
-      <input type="text" id="name" placeholder="Your Name" required
-        style="display:block;width:100%;max-width:400px;margin-bottom:10px;padding:8px;border:2px solid #ddd;border-radius:6px;">
-      <textarea id="message" placeholder="Your Message" required
-        style="display:block;width:100%;max-width:400px;margin-bottom:10px;padding:8px;border:2px solid #ddd;border-radius:6px;"></textarea>
-      <button type="submit" class="btn">Post Wish 🎉</button>
+    <form id="wishForm">
+      <input type="text" id="name" placeholder="Your Name" required>
+      <textarea id="message" placeholder="Your Message" required></textarea>
+      <button type="submit">Post Wish 🎉</button>
     </form>
     <div id="wishesContainer"></div>
   </section>
@@ -58,41 +42,51 @@
   <script>
     const form = document.getElementById("wishForm");
     const wishesContainer = document.getElementById("wishesContainer");
-    let saved = JSON.parse(localStorage.getItem("wishes") || "[]");
 
-    function render() {
+    async function renderWishes() {
+      const { data, error } = await client
+        .from("wishes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching wishes:", error.message);
+        return;
+      }
+
       wishesContainer.innerHTML = "";
-      saved.forEach((wish, index) => {
+      data.forEach(wish => {
         const div = document.createElement("div");
         div.className = "wish";
-        div.innerHTML = `
-          <strong>${wish.name}</strong>: ${wish.message}
-          <button class="deleteBtn" data-index="${index}">❌</button>
-        `;
+        div.innerHTML = `<strong>${wish.name}</strong>: ${wish.message}`;
         wishesContainer.appendChild(div);
       });
-      document.querySelectorAll(".deleteBtn").forEach(btn => {
-        btn.addEventListener("click", e => {
-          const i = e.target.dataset.index;
-          saved.splice(i, 1);
-          localStorage.setItem("wishes", JSON.stringify(saved));
-          render();
-        });
-      });
     }
-    render();
 
-    form.addEventListener("submit", e => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const name = document.getElementById("name").value.trim();
       const message = document.getElementById("message").value.trim();
-      if (name && message) {
-        saved.push({ name, message });
-        localStorage.setItem("wishes", JSON.stringify(saved));
-        render();
-        form.reset();
+      if (!name || !message) return;
+
+      const { error } = await client.from("wishes").insert([{ name, message }]);
+
+      if (error) {
+        console.error("Insert error:", error.message);
+        alert("Could not post wish: " + error.message);
+        return;
       }
+
+      // 🎆 Confetti blast when wish is posted
+      confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+      setTimeout(()=> confetti({ particleCount: 80, spread: 100, origin: { y: 0.7, x: 0.2 }}), 180);
+      setTimeout(()=> confetti({ particleCount: 80, spread: 100, origin: { y: 0.7, x: 0.8 }}), 280);
+
+      form.reset();
+      renderWishes();
     });
+
+    renderWishes();
   </script>
 </body>
 </html>
