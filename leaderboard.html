@@ -24,6 +24,7 @@
     <h1>🏆 Riya’s Quiz — Leaderboard</h1>
     <nav>
       <a href="index.html">Home</a>
+      <a href="about.html">About</a>
       <a href="wishes.html">Wishes</a>
       <a href="memories.html">Memories</a>
       <a href="quiz.html">Quiz</a>
@@ -60,10 +61,6 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
     const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // MUST match your quiz question count
-    // If you change quiz questions, update this number (or compute from quizData).
-    const QUESTION_COUNT = 5;
-
     const msg = document.getElementById('msg');
     const winnerLine = document.getElementById('winner');
     const board = document.getElementById('board');
@@ -78,6 +75,15 @@
       else if(timer){ clearInterval(timer); timer = null; }
     };
 
+    async function getQuestionCount() {
+      // Count distinct q_index in riya_answers (dynamic total)
+      const { data, error } = await supa.from('riya_answers').select('q_index');
+      if (error) throw error;
+      if (!data || !data.length) return 0;
+      const distinct = new Set(data.map(d => d.q_index));
+      return distinct.size;
+    }
+
     async function render(){
       try{
         msg.textContent = "Checking Riya’s answers…";
@@ -86,9 +92,11 @@
         board.style.display = 'none';
         tbody.innerHTML = "";
 
-        // 1) Has Riya answered all questions?
+        // 1) Load Riya's answers and compute total questions dynamically
         const { data: ra, error: rerr } = await supa.from('riya_answers').select('q_index, choice_index');
         if(rerr){ msg.textContent = "Error: "+rerr.message; return; }
+
+        const QUESTION_COUNT = [...new Set(ra.map(r => r.q_index))].length || 11; // fallback to 11 if needed
 
         const need = Array.from({length: QUESTION_COUNT}, (_,i)=>i);
         const riyaMap = new Map(ra.map(r => [r.q_index, r.choice_index]));
