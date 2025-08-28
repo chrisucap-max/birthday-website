@@ -1,165 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔒 Riya Answers</title>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔐 Riya — Set Correct Answers</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    .wrap{ max-width:760px; margin:18px auto; background:#fff; border-radius:14px; padding:16px; box-shadow:0 6px 16px rgba(0,0,0,.08); }
-    .q{ margin:10px 0; text-align:left; }
-    .q h3{ margin:0 0 8px; font-size:18px; }
-    .opt{ margin:4px 0; }
-    .gate{ max-width:480px; margin: 14px auto; background:#fff; padding:14px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+    .wrap{ max-width: 860px; margin: 18px auto; padding: 16px; }
+    .card{ background:#fff; border-radius:14px; padding:16px; box-shadow:0 6px 16px rgba(0,0,0,.08); }
+    .q{ margin:12px 0; }
+    .q h4{ margin:6px 0 8px; font-size:16px; }
+    .opt{ display:block; margin:6px 0; }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .btn{ background:#ff4081; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; }
-    .err{ color:#e53935; font-weight:700; margin-top:8px; }
-    .ok{ color:#2e7d32; font-weight:700; margin-top:8px; }
+    .btn.secondary{ background:#6c63ff; }
+    .tiny{ color:#666; font-size:12px; }
+    #gate{ text-align:center; }
+    header nav a[href="riya.html"]{ font-weight:800; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>🔒 Riya Answers</h1>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="quiz.html">Quiz</a>
-    </nav>
-  </header>
+<header>
+  <h1>🔐 Riya — Set Correct Answers</h1>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="wishes.html">Wishes</a>
+    <a href="memories.html">Memories</a>
+    <a href="quiz.html">Quiz</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="riya.html">Riya Admin</a>
+  </nav>
+</header>
 
-  <!-- Simple gate so only Riya can access -->
-  <section class="gate" id="gate">
-    <p>Riya, enter your secret code:</p>
-    <input id="code" placeholder="Secret code" style="padding:10px 12px; border:2px solid #ddd; border-radius:8px; width:100%;">
-    <div style="margin-top:10px;">
-      <button id="enterBtn" class="btn">Enter</button>
+<section class="wrap">
+  <!-- Access gate -->
+  <div id="gate" class="card">
+    <p><b>Enter PIN to edit answers:</b></p>
+    <input id="pinInput" type="password" placeholder="PIN" style="padding:8px 10px;border:2px solid #ddd;border-radius:8px">
+    <button id="pinBtn" class="btn">Unlock</button>
+    <p class="tiny">Default PIN is <code>RIYA2025</code> — change it in the code.</p>
+    <div id="pinMsg" class="tiny"></div>
+  </div>
+
+  <!-- Form -->
+  <div id="formCard" class="card" style="display:none;">
+    <div class="row">
+      <button id="saveAll" class="btn">💾 Save All</button>
+      <button id="reload" class="btn secondary">🔄 Reload Saved</button>
+      <span id="status" class="tiny">—</span>
     </div>
-    <div id="gateMsg" class="err" style="display:none;"></div>
-  </section>
+    <hr>
 
-  <!-- Answers UI -->
-  <section class="wrap" id="riyaBox" style="display:none;">
-    <h2>Mark your answers</h2>
-    <div id="qs"></div>
-    <div style="margin-top:12px;">
-      <button id="saveBtn" class="btn">💾 Save All</button>
-    </div>
-    <p id="status"></p>
-  </section>
+    <div id="formWrap"></div>
+    <hr>
+    <div class="tiny" id="missingInfo">—</div>
+  </div>
+</section>
 
-  <footer>Made with ❤️ for Riya</footer>
+<footer>Made with ❤️ for Riya</footer>
 
-  <script>
-    // 🔐 Change this before sharing with Riya
-    const SECRET_CODE = "RIYA-2025";
+<script>
+  // ========= CONFIG =========
+  const PIN = "RIYA2025"; // <-- change this if you want
+  const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Supabase
-    const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
+  // ========= Questions (must match quiz.html exactly) =========
+  const quizData = [
+    { q: "🛒 If Riya goes shopping for 'just one thing,' what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
+    { q: "🎨 What is Riya’s favourite colour?", opts: ["Black","Pink","Blue","Yellow"] },
+    { q: "📚 What was Riya’s favourite subject in school?", opts: ["History","Literature","Science","Art"] },
+    { q: "🍴 What is Riya’s favourite food?", opts: ["Pizza","Momos","Biryani","Ice cream"] },
+    { q: "🎶 Which artist or band is Riya’s favourite?", opts: ["BTS","Arijit Singh","Taylor Swift","Coldplay"] },
+    { q: "✨ What is Riya’s hidden talent?", opts: ["Singing","Cooking","Drawing","Dancing"] },
+    { q: "🚗 What is Riya’s favourite car?", opts: ["Mercedes","Mini Cooper","Scorpio","Jeep"] },
+    { q: "🛌 What time does Riya usually go to sleep?", opts: ["Before midnight","Around 1–2am","3–4am","Depends on Netflix"] },
+    { q: "🌸 What is Riya’s ideal way to relax after a stressful day?", opts: ["Watch Netflix","Listen to music","Sleep instantly","Go for a walk"] },
+    { q: "🛍️ What’s the last thing Riya impulse-bought online?", opts: ["Clothes","Skincare","Phone case","Snacks"] },
+    { q: "🛒 If Riya goes shopping for one thing (again!), what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
+    { q: "⏰ Is Riya a morning person or a night owl?", opts: ["Morning person","Both","Night owl","Neither"] }
+  ];
+  const N = quizData.length;
 
-    // ✅ Important: use window.supabase
-    const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // ========= Elements =========
+  const gate = document.getElementById('gate');
+  const pinInput = document.getElementById('pinInput');
+  const pinBtn = document.getElementById('pinBtn');
+  const pinMsg = document.getElementById('pinMsg');
 
-    // MUST MATCH quiz.html
-    const quizData = [
-      { q: "💖 Who is Riya’s celebrity crush?", opts: ["Chris Hemsworth","Chris Evans","Shah Rukh Khan","Harry Styles"] },
-      { q: "🍫 What sweet does Riya absolutely love?", opts: ["Ferrero Rocher","Kinder Joy","Laddu","Brownies"] },
-      { q: "🌸 How would you best describe Riya?", opts: ["Joyful","Serious","Sleepy","Grumpy"] },
-      { q: "🎂 When is Riya’s birthday?", opts: ["Aug 15","Sep 2","Oct 10","Jan 1"] },
-      { q: "🎬 What kind of movies does Riya vibe with most?", opts: ["Action","Rom-com","Horror","Documentary"] }
-    ];
+  const formCard = document.getElementById('formCard');
+  const formWrap = document.getElementById('formWrap');
+  const saveAll = document.getElementById('saveAll');
+  const reloadBtn = document.getElementById('reload');
+  const statusEl = document.getElementById('status');
+  const missingInfo = document.getElementById('missingInfo');
 
-    const gate = document.getElementById("gate");
-    const gateMsg = document.getElementById("gateMsg");
-    const riyaBox = document.getElementById("riyaBox");
-    const qsEl = document.getElementById("qs");
-    const statusEl = document.getElementById("status");
-
-    document.getElementById("enterBtn").onclick = () => {
-      const c = (document.getElementById("code").value || "").trim();
-      if(c === SECRET_CODE){
-        gate.style.display = "none";
-        riyaBox.style.display = "block";
-        gateMsg.style.display = "none";
-        renderQs();
-        preloadExisting();
-      } else {
-        gateMsg.textContent = "Wrong code.";
-        gateMsg.style.display = "block";
-      }
-    };
-
-    function renderQs(){
-      qsEl.innerHTML = "";
-      quizData.forEach((item, i) => {
-        const div = document.createElement("div");
-        div.className = "q";
-        div.innerHTML = `<h3>Q${i+1}. ${item.q}</h3>`;
-        item.opts.forEach((o, idx) => {
-          const id = `q_${i}_${idx}`;
-          const row = document.createElement("div");
-          row.className = "opt";
-          row.innerHTML = `
-            <label for="${id}">
-              <input type="radio" name="riya_${i}" id="${id}" value="${idx}"> ${o}
-            </label>`;
-          div.appendChild(row);
-        });
-        qsEl.appendChild(div);
-      });
+  pinBtn.onclick = ()=>{
+    if((pinInput.value||"").trim() === PIN){
+      gate.style.display = 'none';
+      formCard.style.display = 'block';
+      buildForm();
+      loadSaved();
+    }else{
+      pinMsg.textContent = "❌ Incorrect PIN";
     }
+  };
 
-    async function preloadExisting(){
-      statusEl.textContent = "Loading existing answers…";
-      statusEl.className = "";
-      const { data, error } = await supa.from("riya_answers").select("q_index,choice_index");
-      if(error){
-        console.error("Load error:", error);
-        statusEl.textContent = "Could not load existing answers: " + error.message;
-        statusEl.className = "err";
-        return;
-      }
-      data.forEach(r => {
-        const el = document.querySelector(`input[name="riya_${r.q_index}"][value="${r.choice_index}"]`);
-        if(el) el.checked = true;
+  function buildForm(){
+    formWrap.innerHTML = "";
+    quizData.forEach((q, qi)=>{
+      const div = document.createElement('div');
+      div.className = "q";
+      const title = document.createElement('h4');
+      title.textContent = `${qi+1}. ${q.q}`;
+      div.appendChild(title);
+
+      q.opts.forEach((o, oi)=>{
+        const lab = document.createElement('label');
+        lab.className = "opt";
+        const rb = document.createElement('input');
+        rb.type = "radio"; rb.name = "q"+qi; rb.value = oi;
+        lab.appendChild(rb);
+        lab.appendChild(document.createTextNode(" " + o));
+        div.appendChild(lab);
       });
-      statusEl.textContent = "Ready.";
-      statusEl.className = "ok";
-      setTimeout(()=>{ statusEl.textContent=""; statusEl.className=""; }, 1200);
+
+      formWrap.appendChild(div);
+      const hr = document.createElement('hr');
+      hr.style.border = "none"; hr.style.borderTop = "1px solid #eee";
+      formWrap.appendChild(hr);
+    });
+  }
+
+  // Load current saved correct answers
+  async function loadSaved(){
+    statusEl.textContent = "Loading saved answers…";
+    const { data, error } = await supa.from('riya_answers').select('q_index, choice_index');
+    if(error){ statusEl.textContent = "Error: " + error.message; return; }
+
+    const map = new Map(data.map(d => [d.q_index, d.choice_index]));
+    for(let i=0;i<N;i++){
+      const idx = map.get(i);
+      if(idx != null){
+        const rb = document.querySelector(`input[name="q${i}"][value="${idx}"]`);
+        if(rb) rb.checked = true;
+      }
     }
+    updateMissing();
+    statusEl.textContent = "Loaded.";
+  }
 
-    document.getElementById("saveBtn").onclick = async () => {
-      statusEl.textContent = "Saving…";
-      statusEl.className = "";
+  function updateMissing(){
+    const selected = [...Array(N).keys()].filter(i => document.querySelector(`input[name="q${i}"]:checked`));
+    const missing = N - selected.length;
+    if(missing === 0) missingInfo.textContent = "✅ All answers selected.";
+    else missingInfo.textContent = `⏳ ${missing} question(s) not selected yet.`;
+  }
 
-      const rows = [];
-      quizData.forEach((_, i) => {
-        const sel = document.querySelector(`input[name="riya_${i}"]:checked`);
-        if(sel) rows.push({ q_index: i, choice_index: parseInt(sel.value, 10) });
-      });
+  // Save all answers (upsert)
+  saveAll.onclick = async ()=>{
+    // gather
+    const rows = [];
+    for(let i=0;i<N;i++){
+      const rb = document.querySelector(`input[name="q${i}"]:checked`);
+      if(rb) rows.push({ q_index: i, choice_index: parseInt(rb.value,10) });
+    }
+    if(rows.length === 0){ alert("Pick at least one answer."); return; }
 
-      if(rows.length === 0){
-        statusEl.textContent = "Please select at least one answer.";
-        statusEl.className = "err";
-        return;
+    statusEl.textContent = "Saving…";
+    // Upsert one by one (simple & robust for RLS)
+    try{
+      for(const r of rows){
+        const { error } = await supa.from('riya_answers')
+          .upsert(r, { onConflict: 'q_index' });
+        if(error) throw error;
       }
+      statusEl.textContent = "✅ Saved!";
+      updateMissing();
+    }catch(err){
+      console.error(err);
+      statusEl.textContent = "❌ Save failed: " + err.message;
+    }
+  };
 
-      // ✅ Upsert on primary key q_index, and return rows so we can confirm
-      const { data, error } = await supa
-        .from("riya_answers")
-        .upsert(rows, { onConflict: "q_index" })
-        .select();
+  reloadBtn.onclick = loadSaved;
 
-      if(error){
-        console.error("Save error:", error);
-        statusEl.textContent = "Save failed: " + error.message;
-        statusEl.className = "err";
-        return;
-      }
-
-      console.log("Saved:", data);
-      statusEl.textContent = "Saved! 🎉";
-      statusEl.className = "ok";
-    };
-  </script>
+  // watch for selection changes
+  formWrap.addEventListener('change', (e)=>{
+    if(e.target && e.target.type === 'radio'){
+      updateMissing();
+    }
+  });
+</script>
 </body>
 </html>
