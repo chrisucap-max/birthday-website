@@ -61,30 +61,29 @@
 <footer>Made with ❤️ for Riya</footer>
 
 <script>
-  // ========= CONFIG =========
-  const PIN = "RIYA2025"; // <-- change this if you want
+  // CONFIG
+  const PIN = "RIYA2025"; // change if you want
   const SUPABASE_URL = "https://tbvrpaubtluwjuylduiz.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidnJwYXVidGx1d2p1eWxkdWl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMzAxOTUsImV4cCI6MjA3MTkwNjE5NX0.LiS7f23l9mm7Xp7xWHQH0ZM1K4rRxNrwQopqlntawcI";
   const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ========= Questions (must match quiz.html exactly) =========
+  // Questions MUST match quiz.html
   const quizData = [
     { q: "🛒 If Riya goes shopping for 'just one thing,' what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
     { q: "🎨 What is Riya’s favourite colour?", opts: ["Black","Pink","Blue","Yellow"] },
     { q: "📚 What was Riya’s favourite subject in school?", opts: ["History","Literature","Science","Art"] },
-    { q: "🍴 What is Riya’s favourite food?", opts: ["Pizza","Momos","Biryani","Ice cream"] },
+    { q: "🍴 What is Riya’s favourite food?", opts: ["Pizza","Momos","Tiger prawns","Ice cream"] },
     { q: "🎶 Which artist or band is Riya’s favourite?", opts: ["BTS","Arijit Singh","Taylor Swift","Coldplay"] },
     { q: "✨ What is Riya’s hidden talent?", opts: ["Singing","Cooking","Drawing","Dancing"] },
     { q: "🚗 What is Riya’s favourite car?", opts: ["Mercedes","Mini Cooper","Scorpio","Jeep"] },
     { q: "🛌 What time does Riya usually go to sleep?", opts: ["Before midnight","Around 1–2am","3–4am","Depends on Netflix"] },
     { q: "🌸 What is Riya’s ideal way to relax after a stressful day?", opts: ["Watch Netflix","Listen to music","Sleep instantly","Go for a walk"] },
     { q: "🛍️ What’s the last thing Riya impulse-bought online?", opts: ["Clothes","Skincare","Phone case","Snacks"] },
-    { q: "🛒 If Riya goes shopping for one thing (again!), what will actually happen?", opts: ["Buys only that","Buys 3–4 extras","Ends up with a whole bag","Forgets the main item"] },
     { q: "⏰ Is Riya a morning person or a night owl?", opts: ["Morning person","Both","Night owl","Neither"] }
   ];
   const N = quizData.length;
 
-  // ========= Elements =========
+  // Elements
   const gate = document.getElementById('gate');
   const pinInput = document.getElementById('pinInput');
   const pinBtn = document.getElementById('pinBtn');
@@ -161,7 +160,6 @@
 
   // Save all answers (upsert)
   saveAll.onclick = async ()=>{
-    // gather
     const rows = [];
     for(let i=0;i<N;i++){
       const rb = document.querySelector(`input[name="q${i}"]:checked`);
@@ -170,11 +168,9 @@
     if(rows.length === 0){ alert("Pick at least one answer."); return; }
 
     statusEl.textContent = "Saving…";
-    // Upsert one by one (simple & robust for RLS)
     try{
       for(const r of rows){
-        const { error } = await supa.from('riya_answers')
-          .upsert(r, { onConflict: 'q_index' });
+        const { error } = await supa.from('riya_answers').upsert(r, { onConflict: 'q_index' });
         if(error) throw error;
       }
       statusEl.textContent = "✅ Saved!";
@@ -187,7 +183,6 @@
 
   reloadBtn.onclick = loadSaved;
 
-  // watch for selection changes
   formWrap.addEventListener('change', (e)=>{
     if(e.target && e.target.type === 'radio'){
       updateMissing();
